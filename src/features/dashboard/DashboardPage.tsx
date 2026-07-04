@@ -5,10 +5,7 @@ import { db } from '../../db/schema'
 import { currentStreak } from '../../lib/streak'
 
 export default function DashboardPage() {
-  const counts = useLiveQuery(async () => {
-    // dailyStats/srs 변경 시 재계산되도록 테이블을 live query 안에서 조회
-    return getDueCounts()
-  }, [])
+  const counts = useLiveQuery(async () => getDueCounts(), [])
 
   const streak = useLiveQuery(async () => {
     const days = await db.dailyStats.toArray()
@@ -25,27 +22,40 @@ export default function DashboardPage() {
     return Date.now() - lastAt > 30 * 86_400_000
   }, [])
 
+  const remaining = counts ? counts.due + counts.fresh : null
+  const allDone = remaining === 0
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">하나비 🎆</h1>
-        <p className="text-sm text-slate-500">JLPT 단어, 하루 조금씩.</p>
+    <div className="space-y-5">
+      <header className="flex items-center justify-between">
+        <h1 className="text-lg font-extrabold tracking-tight">하나비 🎆</h1>
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700 ring-1 ring-amber-100">
+          ⚡ {streak === undefined ? '–' : streak}일 연속
+        </span>
       </header>
 
-      <section className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-400">복습 대기</p>
-          <p className="text-3xl font-bold text-rose-600">{counts?.due ?? '–'}</p>
-        </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-400">새 단어</p>
-          <p className="text-3xl font-bold text-emerald-600">{counts?.fresh ?? '–'}</p>
-        </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-400">연속 학습</p>
-          <p className="text-3xl font-bold text-amber-500">
-            {streak === undefined ? '–' : `${streak}일`}
+      {/* 오늘의 학습 히어로 */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6">
+        <p className="text-xs font-semibold text-slate-400">오늘 남은 학습</p>
+        {allDone ? (
+          <p className="mt-2 text-3xl font-extrabold tracking-tight">
+            완료! <span className="text-rose-600">불꽃</span> 터졌어요 🎆
           </p>
+        ) : (
+          <p className="mt-1 flex items-baseline gap-1">
+            <span className="text-6xl font-extrabold tabular-nums tracking-tighter">
+              {remaining ?? '–'}
+            </span>
+            <span className="text-lg text-slate-400">단어</span>
+          </p>
+        )}
+        <div className="mt-3 flex gap-4 text-sm text-slate-500">
+          <span>
+            복습 <b className="text-rose-600">{counts?.due ?? '–'}</b>
+          </span>
+          <span>
+            새 단어 <b className="text-emerald-600">{counts?.fresh ?? '–'}</b>
+          </span>
         </div>
       </section>
 
@@ -58,15 +68,24 @@ export default function DashboardPage() {
         </Link>
       )}
 
-      <section className="space-y-3">
-        <Link to="/review" className="block rounded-2xl bg-rose-600 p-4 text-center text-lg font-semibold text-white shadow">
+      <section className="space-y-2.5">
+        <Link
+          to="/review"
+          className="block rounded-2xl bg-rose-600 p-4 text-center text-lg font-bold text-white"
+        >
           복습 시작
         </Link>
-        <Link to="/quiz" className="block rounded-2xl bg-white p-4 text-center text-lg font-semibold text-rose-600 shadow-sm">
-          퀴즈 풀기
+        <Link
+          to="/micro"
+          className="block rounded-2xl bg-slate-800 p-4 text-center text-lg font-bold text-white"
+        >
+          ⚡ 26초 스피드
         </Link>
-        <Link to="/micro" className="block rounded-2xl bg-white p-4 text-center text-lg font-semibold text-amber-500 shadow-sm">
-          ⚡ 26초 학습
+        <Link
+          to="/quiz"
+          className="block rounded-2xl border border-slate-200 bg-white p-4 text-center text-lg font-bold text-slate-800"
+        >
+          퀴즈 풀기
         </Link>
       </section>
     </div>

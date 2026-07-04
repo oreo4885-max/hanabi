@@ -10,7 +10,7 @@ const items = [
 
 export default function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-rose-100 bg-white/90 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-lg justify-around pb-[env(safe-area-inset-bottom)]">
         {items.map((item) => (
           <NavLink
@@ -18,8 +18,8 @@ export default function BottomNav() {
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-2 text-xs ${
-                isActive ? 'font-semibold text-rose-600' : 'text-slate-400'
+              `flex flex-col items-center gap-0.5 px-3 py-2 text-[11px] transition-colors ${
+                isActive ? 'font-bold text-rose-600' : 'text-slate-400'
               }`
             }
           >

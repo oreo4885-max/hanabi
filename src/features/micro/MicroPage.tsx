@@ -96,7 +96,7 @@ export default function MicroPage() {
         <button
           type="button"
           onClick={start}
-          className="rounded-full bg-amber-400 px-10 py-10 text-2xl font-bold text-white shadow-lg"
+          className="rounded-full bg-slate-800 px-10 py-10 text-2xl font-extrabold text-white shadow-lg ring-4 ring-amber-300/60"
         >
           시작!
         </button>
@@ -139,28 +139,28 @@ export default function MicroPage() {
         <span className="text-2xl font-bold text-rose-600">{remaining}</span>
       </ProgressRing>
 
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-white p-6 text-center shadow-sm">
-        <p className="font-ja text-5xl font-bold">{card?.kanji}</p>
+      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-center">
+        <p className="font-ja-display text-6xl leading-tight">{card?.kanji}</p>
         {card && card.kana !== card.kanji && (
-          <p className="font-ja text-xl text-rose-600">{card.kana}</p>
+          <p className="font-ja text-xl font-semibold text-rose-600">{card.kana}</p>
         )}
-        <p className="text-lg text-slate-600">{card?.ko}</p>
+        <p className="text-lg font-semibold text-slate-600">{card?.ko}</p>
       </div>
 
       <div className="grid w-full grid-cols-2 gap-3">
         <button
           type="button"
           onClick={() => answer(false)}
-          className="rounded-2xl bg-red-500 py-4 text-lg font-bold text-white"
+          className="rounded-2xl bg-red-50 py-4 text-lg font-bold text-red-500 ring-1 ring-red-100"
         >
-          몰라요 😅
+          몰라요
         </button>
         <button
           type="button"
           onClick={() => answer(true)}
           className="rounded-2xl bg-emerald-500 py-4 text-lg font-bold text-white"
         >
-          알아요 ✨
+          알아요
         </button>
       </div>
     </div>

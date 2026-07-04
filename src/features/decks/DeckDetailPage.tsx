@@ -119,6 +119,9 @@ export default function DeckDetailPage() {
                 )}
               </p>
               <p className="truncate text-sm text-slate-500">{card.ko}</p>
+              {card.exJa && (
+                <p className="mt-0.5 truncate font-ja text-xs text-slate-400">{card.exJa}</p>
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {card.pos && (

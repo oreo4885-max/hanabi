@@ -1,36 +1,63 @@
 @import "tailwindcss";
 
+/* ── 하나비 디자인 토큰 ──────────────────────────────
+   콘셉트: 단어 하나 = 불꽃 하나. 26초의 미니멀·속도감을
+   불꽃(주홍 액센트)과 밤하늘(다크)로 번역.
+   기존 rose-* 클래스를 불꽃 주홍 스케일로 재정의한다. */
+@theme {
+  --color-rose-50: #fff4f0;
+  --color-rose-100: #ffe5dd;
+  --color-rose-200: #ffcbbc;
+  --color-rose-300: #ffa78e;
+  --color-rose-400: #ff7a58;
+  --color-rose-500: #ff5a38;
+  --color-rose-600: #f2401f;
+  --color-rose-700: #cc3115;
+
+  --color-slate-800: #1b1c2e; /* 먹빛 잉크 */
+}
+
 html {
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  @apply bg-rose-50 text-slate-800 antialiased;
+  @apply bg-[#f7f7f5] text-slate-800 antialiased;
   font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .font-ja {
   font-family: "Yu Gothic", "Hiragino Sans", "Meiryo", "Noto Sans JP", sans-serif;
 }
 
-/* 시스템 다크모드: 유틸리티 클래스 최소 오버라이드 (개인용 앱의 실용적 선택) */
+/* 학습 카드 표제어 전용 — 단어장 책의 명조 표제어 조판 */
+.font-ja-display {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* 시스템 다크모드 = 밤하늘 (불꽃이 뜨는 배경) */
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #0f172a;
-    color: #e2e8f0;
+    background-color: #14151f;
+    color: #e6e6ef;
   }
-  .bg-rose-50 { background-color: #1e293b !important; }
-  .bg-white { background-color: #1e293b !important; }
-  .bg-white\/90 { background-color: rgba(15, 23, 42, 0.9) !important; }
-  .bg-slate-100 { background-color: #334155 !important; }
-  .bg-rose-100 { background-color: #4c1d2e !important; }
-  .bg-emerald-50 { background-color: #062e22 !important; }
-  .bg-red-50 { background-color: #3f1216 !important; }
-  .bg-amber-50 { background-color: #3a2b0a !important; }
-  .text-slate-800, .text-slate-600, .text-body { color: #e2e8f0 !important; }
-  .text-slate-500, .text-slate-400 { color: #94a3b8 !important; }
+  .bg-\[\#f7f7f5\] { background-color: #14151f !important; }
+  .bg-white { background-color: #1e2030 !important; }
+  .bg-white\/90 { background-color: rgba(20, 21, 31, 0.9) !important; }
+  .bg-slate-100 { background-color: #2c2e42 !important; }
+  .bg-rose-100 { background-color: #3c2018 !important; }
+  .bg-rose-50 { background-color: #2a1c18 !important; }
+  .bg-emerald-50 { background-color: #0c2e24 !important; }
+  .bg-red-50 { background-color: #3a1518 !important; }
+  .bg-amber-50 { background-color: #33290e !important; }
+  .text-slate-800, .text-slate-600 { color: #e6e6ef !important; }
+  .text-slate-500, .text-slate-400 { color: #9a9ab0 !important; }
   .text-amber-700 { color: #fcd34d !important; }
-  .border-rose-100, .border-rose-50, .divide-rose-50 > * { border-color: #334155 !important; }
-  .ring-rose-100 { --tw-ring-color: #334155 !important; }
-  select, input { background-color: #0f172a; color: #e2e8f0; }
+  .border-rose-100, .border-rose-50, .divide-rose-50 > *,
+  .border-slate-200, .divide-slate-100 > * { border-color: #2c2e42 !important; }
+  .ring-rose-100, .ring-slate-200 { --tw-ring-color: #2c2e42 !important; }
+  select, input { background-color: #14151f; color: #e6e6ef; }
 }

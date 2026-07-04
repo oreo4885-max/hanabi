@@ -6,10 +6,10 @@ import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
-  { grade: 0, label: '다시', cls: 'bg-red-500' },
-  { grade: 1, label: '어려움', cls: 'bg-orange-400' },
-  { grade: 2, label: '좋음', cls: 'bg-emerald-500' },
-  { grade: 3, label: '쉬움', cls: 'bg-sky-500' },
+  { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
+  { grade: 1, label: '어려움', cls: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100' },
+  { grade: 2, label: '좋음', cls: 'bg-emerald-500 text-white' },
+  { grade: 3, label: '쉬움', cls: 'bg-slate-800 text-white' },
 ]
 
 /** 이 시간(ms) 안에 다시 due가 되는 카드는 현재 세션에 다시 넣는다. */
@@ -96,16 +96,24 @@ export default function ReviewPage() {
       <button
         type="button"
         onClick={() => setFlipped(true)}
-        className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl bg-white p-6 shadow-sm"
+        className="flex flex-1 flex-col items-center justify-center gap-5 rounded-3xl border border-slate-200 bg-white p-6"
       >
-        <p className="font-ja text-5xl font-bold">{current.card.kanji}</p>
+        <p className="font-ja-display text-6xl leading-tight">{current.card.kanji}</p>
         {flipped ? (
-          <div className="space-y-2 text-center">
+          <div className="space-y-2.5 text-center">
             {current.card.kana !== current.card.kanji && (
-              <p className="font-ja text-2xl text-rose-600">{current.card.kana}</p>
+              <p className="font-ja text-2xl font-semibold text-rose-600">{current.card.kana}</p>
             )}
-            <p className="text-xl">{current.card.ko}</p>
+            <p className="text-xl font-semibold">{current.card.ko}</p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
+            {current.card.exJa && (
+              <div className="mx-auto max-w-xs rounded-xl bg-slate-100 px-4 py-3 text-left">
+                <p className="font-ja text-sm leading-relaxed">{current.card.exJa}</p>
+                {current.card.exKo && (
+                  <p className="mt-1 text-xs text-slate-500">{current.card.exKo}</p>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-center gap-2">
               {tts.available && (
                 <span
@@ -156,7 +164,7 @@ export default function ReviewPage() {
               key={b.grade}
               type="button"
               onClick={() => grade(b.grade)}
-              className={`rounded-xl py-3 font-semibold text-white ${b.cls}`}
+              className={`rounded-xl py-3.5 text-sm font-bold ${b.cls}`}
             >
               {b.label}
             </button>
@@ -165,7 +173,7 @@ export default function ReviewPage() {
           <button
             type="button"
             onClick={() => setFlipped(true)}
-            className="col-span-4 rounded-xl bg-rose-600 py-3 font-semibold text-white"
+            className="col-span-4 rounded-xl bg-rose-600 py-3.5 font-bold text-white"
           >
             답 보기
           </button>

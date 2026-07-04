@@ -116,15 +116,15 @@ export default function QuizPlayPage() {
       </header>
 
       {/* 문제 */}
-      <div className="rounded-3xl bg-white p-8 text-center shadow-sm">
-        {config.mode === 'meaning-to-word' && <p className="text-2xl font-semibold">{q.card.ko}</p>}
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+        {config.mode === 'meaning-to-word' && <p className="text-2xl font-bold">{q.card.ko}</p>}
         {(config.mode === 'word-to-meaning' || config.mode === 'typed') && (
-          <p className="font-ja text-4xl font-bold">{q.card.kanji}</p>
+          <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
         )}
         {config.mode === 'dictation' && (
           <div className="space-y-3">
             {phase === 'feedback' ? (
-              <p className="font-ja text-4xl font-bold">{q.card.kanji}</p>
+              <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
             ) : (
               <p className="text-sm text-slate-400">발음을 듣고 받아쓰세요</p>
             )}
@@ -221,6 +221,12 @@ export default function QuizPlayPage() {
             {q.card.kana !== q.card.kanji && <span className="font-ja"> ({q.card.kana})</span>} —{' '}
             {q.card.ko}
           </p>
+          {q.card.exJa && (
+            <p className="mt-2 rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-slate-500">
+              <span className="font-ja">{q.card.exJa}</span>
+              {q.card.exKo && <span className="block">{q.card.exKo}</span>}
+            </p>
+          )}
           <button
             type="button"
             onClick={next}
