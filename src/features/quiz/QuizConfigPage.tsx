@@ -9,6 +9,7 @@ const MODES: { mode: QuizMode; label: string; desc: string; needsTts?: boolean }
   { mode: 'word-to-meaning', label: '뜻 고르기', desc: '일본어 단어를 보고 한국어 뜻 선택' },
   { mode: 'meaning-to-word', label: '단어 고르기', desc: '한국어 뜻을 보고 일본어 단어 선택' },
   { mode: 'typed', label: '주관식 (읽기 입력)', desc: '단어를 보고 읽기(가나)를 직접 입력' },
+  { mode: 'cloze', label: '예문 빈칸 채우기', desc: '예문의 빈칸에 들어갈 단어 선택' },
   { mode: 'dictation', label: '받아쓰기 (듣기)', desc: '발음을 듣고 가나로 받아쓰기', needsTts: true },
 ]
 

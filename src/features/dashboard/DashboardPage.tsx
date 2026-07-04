@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getDueCounts } from '../../srs/queue'
-import { db } from '../../db/schema'
+import { db, getSetting } from '../../db/schema'
 import { currentStreak } from '../../lib/streak'
 
 export default function DashboardPage() {
@@ -20,6 +20,14 @@ export default function DashboardPage() {
     if (anyLog === 0) return false
     const lastAt = (last?.value as number | undefined) ?? 0
     return Date.now() - lastAt > 30 * 86_400_000
+  }, [])
+
+  const plan = useLiveQuery(async () => {
+    const examDate = await getSetting('examDate', '')
+    if (!examDate) return null
+    const days = Math.ceil((new Date(`${examDate}T23:59:59`).getTime() - Date.now()) / 86_400_000)
+    const totalNew = await db.srs.where('state').equals('new').count()
+    return { days, perDay: days > 0 ? Math.ceil(totalNew / days) : null, totalNew }
   }, [])
 
   const remaining = counts ? counts.due + counts.fresh : null
@@ -57,6 +65,22 @@ export default function DashboardPage() {
             새 단어 <b className="text-emerald-600">{counts?.fresh ?? '–'}</b>
           </span>
         </div>
+        {plan && plan.days > 0 && (
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+            🎯 시험까지 <b className="text-slate-800">D-{plan.days}</b> · 미학습 {plan.totalNew}단어
+            {plan.perDay !== null && (
+              <>
+                {' '}
+                → 하루 새 단어 <b className="text-rose-600">{plan.perDay}개</b> 페이스
+              </>
+            )}
+          </p>
+        )}
+        {plan && plan.days <= 0 && (
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+            🎯 시험일이 지났습니다. 설정에서 새 목표를 정해 보세요.
+          </p>
+        )}
       </section>
 
       {backupDue && (

@@ -107,10 +107,29 @@ export default function ReviewPage() {
             <p className="text-xl font-semibold">{current.card.ko}</p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
             {current.card.exJa && (
-              <div className="mx-auto max-w-xs rounded-xl bg-slate-100 px-4 py-3 text-left">
-                <p className="font-ja text-sm leading-relaxed">{current.card.exJa}</p>
-                {current.card.exKo && (
-                  <p className="mt-1 text-xs text-slate-500">{current.card.exKo}</p>
+              <div className="mx-auto flex max-w-xs items-start gap-2 rounded-xl bg-slate-100 px-4 py-3 text-left">
+                <div className="min-w-0 flex-1">
+                  <p className="font-ja text-sm leading-relaxed">{current.card.exJa}</p>
+                  {current.card.exKo && (
+                    <p className="mt-1 text-xs text-slate-500">{current.card.exKo}</p>
+                  )}
+                </div>
+                {tts.available && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      tts.speak(current.card.exJa!)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') tts.speak(current.card.exJa!)
+                    }}
+                    className="shrink-0 rounded-full p-1 text-base hover:bg-white"
+                    aria-label="예문 듣기"
+                  >
+                    🔊
+                  </span>
                 )}
               </div>
             )}

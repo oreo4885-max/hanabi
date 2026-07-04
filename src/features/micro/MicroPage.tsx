@@ -28,6 +28,27 @@ export default function MicroPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const finishedRef = useRef(false)
 
+  // 스와이프: 오른쪽 = 알아요, 왼쪽 = 몰라요
+  const [dx, setDx] = useState(0)
+  const dragFrom = useRef<number | null>(null)
+  const SWIPE_THRESHOLD = 90
+
+  function onPointerDown(e: React.PointerEvent) {
+    dragFrom.current = e.clientX
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    if (dragFrom.current !== null) setDx(e.clientX - dragFrom.current)
+  }
+  function onPointerEnd() {
+    if (dragFrom.current === null) return
+    const d = dx
+    dragFrom.current = null
+    setDx(0)
+    if (d > SWIPE_THRESHOLD) answer(true)
+    else if (d < -SWIPE_THRESHOLD) answer(false)
+  }
+
   useEffect(() => {
     getSetting('microSeconds', 26).then((s) => {
       setSeconds(s)
@@ -139,12 +160,36 @@ export default function MicroPage() {
         <span className="text-2xl font-bold text-rose-600">{remaining}</span>
       </ProgressRing>
 
-      <div className="flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-center">
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+        style={{
+          transform: `translateX(${dx}px) rotate(${dx / 25}deg)`,
+          transition: dragFrom.current === null ? 'transform 0.15s ease' : 'none',
+          touchAction: 'pan-y',
+        }}
+        className="relative flex w-full flex-1 cursor-grab flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-center active:cursor-grabbing"
+      >
+        <span
+          className="absolute left-4 top-4 rounded-lg bg-emerald-500 px-2 py-1 text-sm font-bold text-white"
+          style={{ opacity: Math.min(1, Math.max(0, dx) / SWIPE_THRESHOLD) }}
+        >
+          알아요 ✨
+        </span>
+        <span
+          className="absolute right-4 top-4 rounded-lg bg-red-500 px-2 py-1 text-sm font-bold text-white"
+          style={{ opacity: Math.min(1, Math.max(0, -dx) / SWIPE_THRESHOLD) }}
+        >
+          몰라요 😅
+        </span>
         <p className="font-ja-display text-6xl leading-tight">{card?.kanji}</p>
         {card && card.kana !== card.kanji && (
           <p className="font-ja text-xl font-semibold text-rose-600">{card.kana}</p>
         )}
         <p className="text-lg font-semibold text-slate-600">{card?.ko}</p>
+        <p className="text-[11px] text-slate-300">← 몰라요 · 밀어서 판정 · 알아요 →</p>
       </div>
 
       <div className="grid w-full grid-cols-2 gap-3">

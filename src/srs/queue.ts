@@ -10,8 +10,28 @@ export interface QueueItem {
 export const DEFAULT_NEW_LIMIT = 10
 export const DEFAULT_REVIEW_LIMIT = 100
 
+/** 취약 단어 기준: 이 횟수 이상 "다시"를 누른 카드 */
+export const WEAK_LAPSES = 2
+const WEAK_SESSION_CAP = 50
+
+/** 취약 단어(자주 틀린 카드)를 lapses 많은 순으로. due와 무관한 집중 연습용. */
+export async function buildWeakQueue(): Promise<QueueItem[]> {
+  const rows = await db.srs.filter((s) => s.lapses >= WEAK_LAPSES).toArray()
+  rows.sort((a, b) => b.lapses - a.lapses)
+  const capped = rows.slice(0, WEAK_SESSION_CAP)
+  const cards = await db.cards.bulkGet(capped.map((r) => r.cardId))
+  return capped
+    .map((srs, i) => ({ srs, card: cards[i] }))
+    .filter((item): item is QueueItem => item.card !== undefined)
+}
+
+export async function getWeakCount(): Promise<number> {
+  return db.srs.filter((s) => s.lapses >= WEAK_LAPSES).count()
+}
+
 /** 오늘의 학습 큐 = due 복습(한도 내) + 신규(일일 한도에서 오늘 소진분 차감), 인터리브. */
 export async function buildDailyQueue(deckId?: string): Promise<QueueItem[]> {
+  if (deckId === 'weak') return buildWeakQueue()
   const now = Date.now()
   const newLimit = await getSetting('dailyNewLimit', DEFAULT_NEW_LIMIT)
   const reviewLimit = await getSetting('dailyReviewLimit', DEFAULT_REVIEW_LIMIT)

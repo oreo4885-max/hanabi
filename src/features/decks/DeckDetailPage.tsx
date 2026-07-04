@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Card } from '../../db/schema'
+import { db, type Card, type Deck } from '../../db/schema'
 import { useTts } from '../../lib/useTts'
+import { WEAK_LAPSES } from '../../srs/queue'
 import CardEditor from './CardEditor'
+
+const WEAK_DECK: Deck = {
+  id: 'weak',
+  name: '🔥 취약 단어',
+  level: null,
+  source: 'bundled',
+  createdAt: 0,
+  cardCount: 0,
+}
 
 export default function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -13,11 +23,21 @@ export default function DeckDetailPage() {
   const tts = useTts()
   const navigate = useNavigate()
 
-  const deck = useLiveQuery(() => (id ? db.decks.get(id) : undefined), [id])
-  const cards = useLiveQuery(
-    () => (id ? db.cards.where('deckId').equals(id).toArray() : []),
-    [id],
+  const isWeak = id === 'weak'
+  const deck = useLiveQuery(
+    () => (isWeak ? Promise.resolve(WEAK_DECK) : id ? db.decks.get(id) : undefined),
+    [id, isWeak],
   )
+  const cards = useLiveQuery(async () => {
+    if (!id) return []
+    if (isWeak) {
+      const rows = await db.srs.filter((s) => s.lapses >= WEAK_LAPSES).toArray()
+      rows.sort((a, b) => b.lapses - a.lapses)
+      const found = await db.cards.bulkGet(rows.map((r) => r.cardId))
+      return found.filter((c): c is Card => c !== undefined)
+    }
+    return db.cards.where('deckId').equals(id).toArray()
+  }, [id, isWeak])
 
   if (!deck || !cards) return <p className="text-sm text-slate-400">불러오는 중…</p>
 
@@ -60,6 +80,15 @@ export default function DeckDetailPage() {
         </div>
         <span className="text-sm text-slate-400">{filtered.length}단어</span>
       </header>
+
+      {isWeak && cards.length > 0 && (
+        <Link
+          to="/review?deck=weak"
+          className="block rounded-2xl bg-rose-600 p-3.5 text-center font-bold text-white"
+        >
+          이 단어들 집중 연습 ({Math.min(cards.length, 50)}장)
+        </Link>
+      )}
 
       {isCustom && (
         <div className="flex gap-2">

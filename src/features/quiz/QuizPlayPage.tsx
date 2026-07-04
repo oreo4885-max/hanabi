@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { db, type Card } from '../../db/schema'
 import { useSession } from '../../stores/session'
-import { generateQuestions, type Question } from './generate'
+import { generateQuestions, makeCloze, type Question } from './generate'
 import { isCorrectKana } from '../../lib/kana'
 import { bumpDaily, recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
@@ -104,7 +104,8 @@ export default function QuizPlayPage() {
     setIndex((i) => i + 1)
   }
 
-  const isChoice = config.mode === 'word-to-meaning' || config.mode === 'meaning-to-word'
+  const isChoice =
+    config.mode === 'word-to-meaning' || config.mode === 'meaning-to-word' || config.mode === 'cloze'
 
   return (
     <div className="flex min-h-[70svh] flex-col">
@@ -118,6 +119,12 @@ export default function QuizPlayPage() {
       {/* 문제 */}
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
         {config.mode === 'meaning-to-word' && <p className="text-2xl font-bold">{q.card.ko}</p>}
+        {config.mode === 'cloze' && (
+          <div className="space-y-2">
+            <p className="font-ja text-xl font-semibold leading-relaxed">{makeCloze(q.card)}</p>
+            {q.card.exKo && <p className="text-sm text-slate-400">{q.card.exKo}</p>}
+          </div>
+        )}
         {(config.mode === 'word-to-meaning' || config.mode === 'typed') && (
           <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
         )}
@@ -159,6 +166,11 @@ export default function QuizPlayPage() {
               >
                 {config.mode === 'word-to-meaning' ? (
                   <span>{choice.ko}</span>
+                ) : config.mode === 'cloze' ? (
+                  <span className="font-ja font-semibold">
+                    {choice.kanji}
+                    {phase === 'feedback' && <span className="ml-2 text-sm font-normal text-slate-400">{choice.ko}</span>}
+                  </span>
                 ) : (
                   <span className="font-ja font-semibold">
                     {choice.kanji}

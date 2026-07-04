@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type QuizMode = 'word-to-meaning' | 'meaning-to-word' | 'typed' | 'dictation'
+export type QuizMode = 'word-to-meaning' | 'meaning-to-word' | 'typed' | 'dictation' | 'cloze'
 
 export interface QuizConfig {
   deckId: string

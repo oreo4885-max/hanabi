@@ -24,11 +24,25 @@ function pickDistractors(target: Card, pool: Card[], n = 3): Card[] {
   return [...samePos, ...rest].slice(0, n)
 }
 
+/** "A; B" 표제어의 첫 변형 */
+export function firstVariant(kanji: string): string {
+  return kanji.split(';')[0].trim()
+}
+
+/** 예문 속 표제어를 빈칸으로 */
+export function makeCloze(card: Card): string | null {
+  if (!card.exJa) return null
+  const head = firstVariant(card.kanji)
+  if (!card.exJa.includes(head)) return null
+  return card.exJa.replace(head, '（　　）')
+}
+
 export function generateQuestions(pool: Card[], mode: QuizMode, count: number): Question[] {
-  const targets = shuffle(pool).slice(0, count)
-  const isChoice = mode === 'word-to-meaning' || mode === 'meaning-to-word'
+  const effectivePool = mode === 'cloze' ? pool.filter((c) => makeCloze(c) !== null) : pool
+  const targets = shuffle(effectivePool).slice(0, count)
+  const isChoice = mode === 'word-to-meaning' || mode === 'meaning-to-word' || mode === 'cloze'
   return targets.map((card) => ({
     card,
-    choices: isChoice ? shuffle([card, ...pickDistractors(card, pool)]) : undefined,
+    choices: isChoice ? shuffle([card, ...pickDistractors(card, effectivePool)]) : undefined,
   }))
 }

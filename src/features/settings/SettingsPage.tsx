@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { getSetting, setSetting } from '../../db/schema'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, getSetting, setSetting } from '../../db/schema'
 import { initVoices, jaVoices, speakJa } from '../../lib/tts'
 import { downloadBackup, importBackup, resetAll } from '../../lib/backup'
 
@@ -11,7 +12,35 @@ export default function SettingsPage() {
   const [newLimit, setNewLimit] = useState(10)
   const [reviewLimit, setReviewLimit] = useState(100)
   const [backupMsg, setBackupMsg] = useState('')
+  const [examDate, setExamDate] = useState('')
+  const [reminderOn, setReminderOn] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const flagged = useLiveQuery(() => db.cards.filter((c) => !!c.flagged).toArray(), [])
+
+  async function toggleReminder() {
+    if (!reminderOn) {
+      if (typeof Notification === 'undefined') {
+        setBackupMsg('❌ 이 브라우저는 알림을 지원하지 않습니다.')
+        return
+      }
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') {
+        setBackupMsg('❌ 알림 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.')
+        return
+      }
+    }
+    const next = !reminderOn
+    setReminderOn(next)
+    await setSetting('reminderEnabled', next)
+  }
+
+  async function copyFlagged() {
+    if (!flagged || flagged.length === 0) return
+    const text = flagged.map((c) => `${c.id}\t${c.kanji}\t${c.kana}\t${c.ko}`).join('\n')
+    await navigator.clipboard.writeText(text)
+    setBackupMsg(`✅ 신고 단어 ${flagged.length}개를 클립보드에 복사했습니다.`)
+  }
 
   async function onImportFile(file: File) {
     try {
@@ -31,7 +60,11 @@ export default function SettingsPage() {
       getSetting('ttsRate', 0.9),
       getSetting('dailyNewLimit', 10),
       getSetting('dailyReviewLimit', 100),
-    ]).then(([, v, r, nl, rl]) => {
+      getSetting('examDate', ''),
+      getSetting('reminderEnabled', false),
+    ]).then(([, v, r, nl, rl, ed, ro]) => {
+      setExamDate(ed)
+      setReminderOn(ro && typeof Notification !== 'undefined' && Notification.permission === 'granted')
       if (!alive) return
       setVoices(jaVoices())
       setVoiceName(v)
@@ -87,6 +120,37 @@ export default function SettingsPage() {
             ))}
           </select>
         </label>
+      </section>
+
+      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="font-semibold">목표</h2>
+        <label className="flex items-center justify-between text-sm">
+          시험일 (D-day 페이스 계산)
+          <input
+            type="date"
+            value={examDate}
+            onChange={async (e) => {
+              setExamDate(e.target.value)
+              await setSetting('examDate', e.target.value)
+            }}
+            className="rounded-lg border border-rose-100 px-3 py-1.5"
+          />
+        </label>
+        <label className="flex items-center justify-between text-sm">
+          복습 리마인더 (브라우저 알림)
+          <button
+            type="button"
+            onClick={() => void toggleReminder()}
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
+              reminderOn ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {reminderOn ? '켜짐' : '꺼짐'}
+          </button>
+        </label>
+        <p className="text-xs text-slate-400">
+          알림은 브라우저가 열려 있을 때 동작합니다. 휴대폰 푸시는 배포 후 지원됩니다.
+        </p>
       </section>
 
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
@@ -177,6 +241,15 @@ export default function SettingsPage() {
           >
             데이터 초기화
           </button>
+          {(flagged?.length ?? 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => void copyFlagged()}
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-amber-600 shadow-sm ring-1 ring-amber-100"
+            >
+              🚩 신고 단어 {flagged!.length}개 복사
+            </button>
+          )}
         </div>
         <input
           ref={fileRef}
