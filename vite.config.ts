@@ -16,8 +16,8 @@ export default defineConfig({
         short_name: '하나비',
         description: 'JLPT 일본어 단어 암기 앱 (플래시카드·퀴즈·26초 학습)',
         lang: 'ko',
-        theme_color: '#e11d48',
-        background_color: '#fff1f2',
+        theme_color: '#f2401f',
+        background_color: '#f7f7f5',
         display: 'standalone',
         start_url: '/',
         icons: [

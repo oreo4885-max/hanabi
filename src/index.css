@@ -19,6 +19,28 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  /* 모바일: 당겨서 새로고침·바운스로 학습 흐름이 끊기지 않게 */
+  overscroll-behavior-y: none;
+}
+
+/* 모바일 터치 최적화 */
+button,
+a {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button:active,
+a:active {
+  transform: scale(0.98);
+}
+
+/* iOS: 16px 미만 입력 필드 포커스 시 자동 확대 방지 */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
 }
 
 body {

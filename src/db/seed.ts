@@ -1,6 +1,4 @@
 import { db, type Card, type Deck, type Level, type SrsState } from './schema'
-import n5Data from '../data/n5.json'
-import n4Data from '../data/n4.json'
 
 interface SeedWord {
   id: string
@@ -19,7 +17,12 @@ interface SeedFile {
   words: SeedWord[]
 }
 
-const BUNDLED: SeedFile[] = [n5Data as SeedFile, n4Data as SeedFile]
+/** 레벨별 데이터는 필요할 때만 동적 로드 (모바일 첫 화면을 가볍게). version은 여기서 관리. */
+const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
+  { level: 'N5', version: 2, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
+  { level: 'N4', version: 2, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
+  { level: 'N3', version: 1, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
+]
 
 function newSrsRow(cardId: string, deckId: string): SrsState {
   return {
@@ -38,13 +41,15 @@ function newSrsRow(cardId: string, deckId: string): SrsState {
 
 /** 번들 데이터셋을 IndexedDB에 시딩. version이 오르면 카드 내용만 갱신(SRS 진행 상태는 보존). */
 export async function seedBundledDecks(): Promise<void> {
-  for (const file of BUNDLED) {
-    const level = file.level as Level
+  for (const bundle of BUNDLED) {
+    const { level, version } = bundle
     const deckId = `jlpt-${level.toLowerCase()}`
     const versionKey = `seed:${deckId}:version`
 
     const seeded = await db.settings.get(versionKey)
-    if (seeded !== undefined && (seeded.value as number) >= file.version) continue
+    if (seeded !== undefined && (seeded.value as number) >= version) continue
+
+    const file = await bundle.load()
 
     const deck: Deck = {
       id: deckId,
@@ -87,7 +92,7 @@ export async function seedBundledDecks(): Promise<void> {
       const newRows = cards.filter((c) => !existingSrs.has(c.id)).map((c) => newSrsRow(c.id, deckId))
       if (newRows.length > 0) await db.srs.bulkAdd(newRows)
 
-      await db.settings.put({ key: versionKey, value: file.version })
+      await db.settings.put({ key: versionKey, value: version })
     })
   }
 }
