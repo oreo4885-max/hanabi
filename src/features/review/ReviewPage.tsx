@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import type { Grade } from '../../db/schema'
+import { db, type Grade } from '../../db/schema'
 import { buildDailyQueue, type QueueItem } from '../../srs/queue'
 import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
@@ -22,6 +22,7 @@ export default function ReviewPage() {
   const [queue, setQueue] = useState<QueueItem[] | null>(null)
   const [flipped, setFlipped] = useState(false)
   const [done, setDone] = useState(0)
+  const [flagged, setFlagged] = useState(false)
   const shownAt = useRef(Date.now())
   const tts = useTts()
 
@@ -34,6 +35,21 @@ export default function ReviewPage() {
       alive = false
     }
   }, [deckId])
+
+  const currentCardId = queue?.[0]?.card.id
+  const currentFlagged = queue?.[0]?.card.flagged
+  useEffect(() => {
+    setFlagged(!!currentFlagged)
+  }, [currentCardId, currentFlagged])
+
+  async function toggleFlag() {
+    const card = queue?.[0]?.card
+    if (!card) return
+    const next = !flagged
+    setFlagged(next)
+    card.flagged = next
+    await db.cards.update(card.id, { flagged: next })
+  }
 
   if (!queue) return <p className="text-sm text-slate-400">큐를 만드는 중…</p>
 
@@ -90,23 +106,43 @@ export default function ReviewPage() {
             )}
             <p className="text-xl">{current.card.ko}</p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
-            {tts.available && (
+            <div className="flex items-center justify-center gap-2">
+              {tts.available && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    tts.speak(current.card.kana)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') tts.speak(current.card.kana)
+                  }}
+                  className="inline-block rounded-full px-3 py-1 text-2xl hover:bg-rose-50"
+                  aria-label="발음 듣기"
+                >
+                  🔊
+                </span>
+              )}
               <span
                 role="button"
                 tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation()
-                  tts.speak(current.card.kana)
+                  void toggleFlag()
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') tts.speak(current.card.kana)
+                  if (e.key === 'Enter') void toggleFlag()
                 }}
-                className="inline-block rounded-full px-3 py-1 text-2xl hover:bg-rose-50"
-                aria-label="발음 듣기"
+                className={`inline-block rounded-full px-3 py-1 text-xl hover:bg-rose-50 ${
+                  flagged ? '' : 'opacity-30 grayscale'
+                }`}
+                aria-label="뜻 오류 신고"
+                title="뜻이 이상하면 신고"
               >
-                🔊
+                🚩
               </span>
-            )}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-slate-400">탭해서 답 확인</p>

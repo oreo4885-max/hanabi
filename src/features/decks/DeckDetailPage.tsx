@@ -9,6 +9,7 @@ export default function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Card | 'new' | null>(null)
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
   const tts = useTts()
   const navigate = useNavigate()
 
@@ -21,10 +22,12 @@ export default function DeckDetailPage() {
   if (!deck || !cards) return <p className="text-sm text-slate-400">불러오는 중…</p>
 
   const isCustom = deck.source === 'custom'
+  const flaggedCount = cards.filter((c) => c.flagged).length
   const q = query.trim()
-  const filtered = q
+  let filtered = q
     ? cards.filter((c) => c.kanji.includes(q) || c.kana.includes(q) || c.ko.includes(q))
     : cards
+  if (flaggedOnly) filtered = filtered.filter((c) => c.flagged)
 
   async function removeCard(card: Card) {
     if (!window.confirm(`'${card.kanji}' 단어를 삭제할까요?`)) return
@@ -93,6 +96,18 @@ export default function DeckDetailPage() {
         className="w-full rounded-xl border border-rose-100 bg-white px-4 py-2.5 text-sm outline-none focus:border-rose-300"
       />
 
+      {flaggedCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setFlaggedOnly((v) => !v)}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            flaggedOnly ? 'bg-rose-600 text-white' : 'bg-white text-rose-600 ring-1 ring-rose-100'
+          }`}
+        >
+          🚩 신고한 단어 {flaggedCount}
+        </button>
+      )}
+
       <ul className="divide-y divide-rose-50 rounded-2xl bg-white shadow-sm">
         {filtered.map((card) => (
           <li key={card.id} className="flex items-center justify-between gap-3 px-4 py-3">
@@ -121,6 +136,17 @@ export default function DeckDetailPage() {
                   🔊
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => void db.cards.update(card.id, { flagged: !card.flagged })}
+                className={`rounded-full p-1.5 text-sm leading-none hover:bg-rose-50 ${
+                  card.flagged ? '' : 'opacity-30 grayscale'
+                }`}
+                aria-label={card.flagged ? '신고 해제' : '뜻 오류 신고'}
+                title={card.flagged ? '신고 해제' : '뜻이 이상하면 신고'}
+              >
+                🚩
+              </button>
               {isCustom && (
                 <>
                   <button

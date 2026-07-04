@@ -1,5 +1,6 @@
 import { db, type Card, type Deck, type Level, type SrsState } from './schema'
 import n5Data from '../data/n5.json'
+import n4Data from '../data/n4.json'
 
 interface SeedWord {
   id: string
@@ -18,7 +19,7 @@ interface SeedFile {
   words: SeedWord[]
 }
 
-const BUNDLED: SeedFile[] = [n5Data as SeedFile]
+const BUNDLED: SeedFile[] = [n5Data as SeedFile, n4Data as SeedFile]
 
 function newSrsRow(cardId: string, deckId: string): SrsState {
   return {
