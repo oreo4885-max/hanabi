@@ -12,6 +12,11 @@ export default function SettingsPage() {
   const [newLimit, setNewLimit] = useState(10)
   const [reviewLimit, setReviewLimit] = useState(100)
   const [backupMsg, setBackupMsg] = useState('')
+  const [showReading, setShowReading] = useState(true)
+
+  useEffect(() => {
+    getSetting('showReading', true).then(setShowReading)
+  }, [])
   const [examDate, setExamDate] = useState('')
   const [reminderOn, setReminderOn] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -119,6 +124,21 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex items-center justify-between text-sm">
+          <span>
+            카드 앞면에 읽기 표시
+            <span className="block text-xs text-slate-400">한자 아래 히라가나를 항상 보여줍니다</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={showReading}
+            onChange={async (e) => {
+              setShowReading(e.target.checked)
+              await setSetting('showReading', e.target.checked)
+            }}
+            className="h-5 w-5 accent-rose-600"
+          />
         </label>
       </section>
 

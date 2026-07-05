@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { db, type Card } from '../../db/schema'
+import { db, getSetting, type Card } from '../../db/schema'
 import { useSession } from '../../stores/session'
 import { generateQuestions, makeCloze, type Question } from './generate'
 import { isCorrectKana } from '../../lib/kana'
@@ -20,7 +20,12 @@ export default function QuizPlayPage() {
   const [correctCount, setCorrectCount] = useState(0)
   const [typed, setTyped] = useState('')
   const composing = useRef(false)
+  const [showReading, setShowReading] = useState(false)
   const tts = useTts()
+
+  useEffect(() => {
+    getSetting('showReading', true).then(setShowReading)
+  }, [])
 
   useEffect(() => {
     if (!config) {
@@ -128,6 +133,10 @@ export default function QuizPlayPage() {
         {(config.mode === 'word-to-meaning' || config.mode === 'typed') && (
           <div className="space-y-3">
             <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
+            {/* 주관식은 읽기가 정답이므로 뜻 고르기에서만 읽기 표시 */}
+            {showReading && config.mode === 'word-to-meaning' && q.card.kana !== q.card.kanji && (
+              <p className="font-ja text-lg text-slate-400">{q.card.kana}</p>
+            )}
             {/* 주관식은 읽기가 정답이므로 문제 단계에서는 발음을 숨긴다 */}
             {tts.available && config.mode === 'word-to-meaning' && (
               <button

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { db, type Grade } from '../../db/schema'
+import { db, getSetting, type Grade } from '../../db/schema'
 import { buildDailyQueue, type QueueItem } from '../../srs/queue'
 import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
@@ -24,6 +24,11 @@ export default function ReviewPage() {
   const [flipped, setFlipped] = useState(false)
   const [done, setDone] = useState(0)
   const [flagged, setFlagged] = useState(false)
+  const [showReading, setShowReading] = useState(false)
+
+  useEffect(() => {
+    getSetting('showReading', true).then(setShowReading)
+  }, [])
   const shownAt = useRef(Date.now())
   const tts = useTts()
 
@@ -99,7 +104,13 @@ export default function ReviewPage() {
         onClick={() => setFlipped(true)}
         className="flex flex-1 flex-col items-center justify-center gap-5 rounded-3xl border border-slate-200 bg-white p-6"
       >
-        <p className="font-ja-display text-6xl leading-tight">{current.card.kanji}</p>
+        <div>
+          <p className="font-ja-display text-6xl leading-tight">{current.card.kanji}</p>
+          {/* 초급 배려: 설정이 켜져 있으면 앞면에도 읽기 표시 */}
+          {!flipped && showReading && current.card.kana !== current.card.kanji && (
+            <p className="mt-2 font-ja text-xl text-slate-400">{current.card.kana}</p>
+          )}
+        </div>
         {flipped ? (
           <div className="space-y-2.5 text-center">
             {current.card.kana !== current.card.kanji && (

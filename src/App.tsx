@@ -10,6 +10,7 @@ const QuizConfigPage = lazy(() => import('./features/quiz/QuizConfigPage'))
 const QuizPlayPage = lazy(() => import('./features/quiz/QuizPlayPage'))
 const MicroPage = lazy(() => import('./features/micro/MicroPage'))
 const KanaPage = lazy(() => import('./features/kana/KanaPage'))
+const TalkPage = lazy(() => import('./features/talk/TalkPage'))
 const StatsPage = lazy(() => import('./features/stats/StatsPage'))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/quiz/play" element={<QuizPlayPage />} />
             <Route path="/micro" element={<MicroPage />} />
             <Route path="/kana" element={<KanaPage />} />
+            <Route path="/talk" element={<TalkPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>

@@ -66,6 +66,8 @@ export function pickJaVoice(preferredName?: string): SpeechSynthesisVoice | null
 export interface SpeakOptions {
   rate?: number
   voiceName?: string
+  /** 발화가 끝났을 때 (연속 재생용) */
+  onEnd?: () => void
 }
 
 // cancel() 직후 speak()가 무시되는 브라우저 버그 대응용 상태
@@ -87,6 +89,7 @@ export function speakJa(text: string, opts: SpeakOptions = {}): void {
   utter.voice = voice
   utter.lang = voice.lang
   utter.rate = opts.rate ?? 0.9
+  if (opts.onEnd) utter.onend = opts.onEnd
   currentUtter = utter
 
   if (pendingTimer) clearTimeout(pendingTimer)
