@@ -24,6 +24,8 @@ export interface Card {
   exKo?: string
   /** 의미 연상용 이모지 힌트 (구체어 위주, 없을 수 있음) */
   emoji?: string
+  /** 한국식 발음 연상 암기 문장 (**소리** 강조 마크 포함) */
+  mnemonic?: string
   level?: Level
   flagged?: boolean
 }

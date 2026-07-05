@@ -4,6 +4,7 @@ import { db, type Grade } from '../../db/schema'
 import { buildDailyQueue, type QueueItem } from '../../srs/queue'
 import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
+import Mnemonic from '../../components/Mnemonic'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
   { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
@@ -109,6 +110,7 @@ export default function ReviewPage() {
               {current.card.ko}
             </p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
+            {current.card.mnemonic && <Mnemonic text={current.card.mnemonic} />}
             {current.card.exJa && (
               <div className="mx-auto flex max-w-xs items-start gap-2 rounded-xl bg-slate-100 px-4 py-3 text-left">
                 <div className="min-w-0 flex-1">
