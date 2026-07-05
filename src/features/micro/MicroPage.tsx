@@ -193,6 +193,7 @@ export default function MicroPage() {
         >
           몰라요 😅
         </span>
+        {card?.emoji && <p className="text-4xl leading-none">{card.emoji}</p>}
         <p className="font-ja-display text-6xl leading-tight">{card?.kanji}</p>
         {card && card.kana !== card.kanji && (
           <p className="font-ja text-xl font-semibold text-rose-600">{card.kana}</p>

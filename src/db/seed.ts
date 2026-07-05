@@ -8,6 +8,7 @@ interface SeedWord {
   pos?: string
   exJa?: string
   exKo?: string
+  emoji?: string
 }
 
 interface SeedFile {
@@ -19,8 +20,8 @@ interface SeedFile {
 
 /** 레벨별 데이터는 필요할 때만 동적 로드 (모바일 첫 화면을 가볍게). version은 여기서 관리. */
 const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
-  { level: 'N5', version: 2, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
-  { level: 'N4', version: 2, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
+  { level: 'N5', version: 4, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
+  { level: 'N4', version: 4, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
   { level: 'N3', version: 1, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
 ]
 
@@ -69,6 +70,7 @@ export async function seedBundledDecks(): Promise<void> {
       pos: w.pos,
       exJa: w.exJa,
       exKo: w.exKo,
+      emoji: w.emoji,
       level,
     }))
 

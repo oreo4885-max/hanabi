@@ -22,6 +22,8 @@ export interface Card {
   pos?: string
   exJa?: string
   exKo?: string
+  /** 의미 연상용 이모지 힌트 (구체어 위주, 없을 수 있음) */
+  emoji?: string
   level?: Level
   flagged?: boolean
 }

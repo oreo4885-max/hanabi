@@ -104,7 +104,10 @@ export default function ReviewPage() {
             {current.card.kana !== current.card.kanji && (
               <p className="font-ja text-2xl font-semibold text-rose-600">{current.card.kana}</p>
             )}
-            <p className="text-xl font-semibold">{current.card.ko}</p>
+            <p className="text-xl font-semibold">
+              {current.card.emoji && <span className="mr-2 text-3xl align-middle">{current.card.emoji}</span>}
+              {current.card.ko}
+            </p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
             {current.card.exJa && (
               <div className="mx-auto flex max-w-xs items-start gap-2 rounded-xl bg-slate-100 px-4 py-3 text-left">

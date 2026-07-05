@@ -142,6 +142,7 @@ export default function DeckDetailPage() {
           <li key={card.id} className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0">
               <p className="font-ja text-lg font-semibold">
+                {card.emoji && <span className="mr-1.5">{card.emoji}</span>}
                 {card.kanji}
                 {card.kana !== card.kanji && (
                   <span className="ml-2 text-sm font-normal text-slate-400">{card.kana}</span>
