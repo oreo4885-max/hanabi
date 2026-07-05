@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // GitHub Pages는 /hanabi/ 하위 경로에 배포되므로 배포 빌드에서만 base 적용 (로컬 dev는 /)
+  base: process.env.DEPLOY ? '/hanabi/' : '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -19,7 +21,7 @@ export default defineConfig({
         theme_color: '#f2401f',
         background_color: '#f7f7f5',
         display: 'standalone',
-        start_url: '/',
+        start_url: process.env.DEPLOY ? '/hanabi/' : '/',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
