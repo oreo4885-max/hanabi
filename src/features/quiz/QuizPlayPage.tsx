@@ -126,7 +126,20 @@ export default function QuizPlayPage() {
           </div>
         )}
         {(config.mode === 'word-to-meaning' || config.mode === 'typed') && (
-          <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
+          <div className="space-y-3">
+            <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
+            {/* 주관식은 읽기가 정답이므로 문제 단계에서는 발음을 숨긴다 */}
+            {tts.available && config.mode === 'word-to-meaning' && (
+              <button
+                type="button"
+                onClick={() => tts.speak(q.card.kana)}
+                className="rounded-full bg-rose-50 px-4 py-1.5 text-xl ring-1 ring-rose-100"
+                aria-label="발음 듣기"
+              >
+                🔊
+              </button>
+            )}
+          </div>
         )}
         {config.mode === 'dictation' && (
           <div className="space-y-3">
@@ -228,15 +241,39 @@ export default function QuizPlayPage() {
           <p className={`font-bold ${lastCorrect ? 'text-emerald-600' : 'text-red-500'}`}>
             {lastCorrect ? '정답! ⭕' : '오답 ❌'}
           </p>
-          <p className="mt-1 text-sm text-slate-600">
-            <span className="font-ja font-semibold">{q.card.kanji}</span>
-            {q.card.kana !== q.card.kanji && <span className="font-ja"> ({q.card.kana})</span>} —{' '}
-            {q.card.ko}
+          <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+            <span>
+              <span className="font-ja font-semibold">{q.card.kanji}</span>
+              {q.card.kana !== q.card.kanji && <span className="font-ja"> ({q.card.kana})</span>} —{' '}
+              {q.card.ko}
+            </span>
+            {tts.available && (
+              <button
+                type="button"
+                onClick={() => tts.speak(q.card.kana)}
+                className="shrink-0 text-base"
+                aria-label="단어 발음 듣기"
+              >
+                🔊
+              </button>
+            )}
           </p>
           {q.card.exJa && (
-            <p className="mt-2 rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-slate-500">
-              <span className="font-ja">{q.card.exJa}</span>
-              {q.card.exKo && <span className="block">{q.card.exKo}</span>}
+            <p className="mt-2 flex items-start gap-2 rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-slate-500">
+              <span className="min-w-0">
+                <span className="font-ja">{q.card.exJa}</span>
+                {q.card.exKo && <span className="block">{q.card.exKo}</span>}
+              </span>
+              {tts.available && (
+                <button
+                  type="button"
+                  onClick={() => tts.speak(q.card.exJa!)}
+                  className="shrink-0 text-base"
+                  aria-label="예문 듣기"
+                >
+                  🔊
+                </button>
+              )}
             </p>
           )}
           <button

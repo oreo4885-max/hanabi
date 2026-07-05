@@ -68,16 +68,41 @@ export interface SpeakOptions {
   voiceName?: string
 }
 
+// cancel() 직후 speak()가 무시되는 브라우저 버그 대응용 상태
+let pendingTimer: ReturnType<typeof setTimeout> | null = null
+// GC로 발화가 중간에 끊기는 Chrome 버그 방지용 참조 유지
+let currentUtter: SpeechSynthesisUtterance | null = null
+export function _keepAlive() {
+  return currentUtter
+}
+
 /** 일본어 텍스트 발화. 음성이 없으면 조용히 무시. */
 export function speakJa(text: string, opts: SpeakOptions = {}): void {
   const synth = typeof window !== 'undefined' ? window.speechSynthesis : undefined
   if (!synth) return
   const voice = pickJaVoice(opts.voiceName)
   if (!voice) return
-  synth.cancel()
+
   const utter = new SpeechSynthesisUtterance(text)
   utter.voice = voice
   utter.lang = voice.lang
   utter.rate = opts.rate ?? 0.9
-  synth.speak(utter)
+  currentUtter = utter
+
+  if (pendingTimer) clearTimeout(pendingTimer)
+
+  const speakNow = () => {
+    pendingTimer = null
+    // Edge 온라인 음성이 일시정지 상태로 남는 경우 방지
+    synth.resume()
+    synth.speak(utter)
+  }
+
+  if (synth.speaking || synth.pending) {
+    // cancel이 정리될 시간을 준 뒤 발화 (즉시 speak하면 무시되는 버그)
+    synth.cancel()
+    pendingTimer = setTimeout(speakNow, 80)
+  } else {
+    speakNow()
+  }
 }

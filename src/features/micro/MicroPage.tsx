@@ -5,6 +5,7 @@ import { getSetting } from '../../db/schema'
 import { buildDailyQueue } from '../../srs/queue'
 import { bumpDaily, recordReview } from '../../lib/stats'
 import ProgressRing from '../../components/ProgressRing'
+import { useTts } from '../../lib/useTts'
 
 type Phase = 'ready' | 'playing' | 'done'
 
@@ -27,6 +28,14 @@ export default function MicroPage() {
   const [known, setKnown] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const finishedRef = useRef(false)
+  const tts = useTts()
+
+  // 카드가 바뀌면 자동 발음 (음성이 있을 때)
+  const currentCardKana = phase === 'playing' ? cards[index]?.kana : undefined
+  useEffect(() => {
+    if (currentCardKana && tts.available) tts.speak(currentCardKana)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCardKana, tts.available])
 
   // 스와이프: 오른쪽 = 알아요, 왼쪽 = 몰라요
   const [dx, setDx] = useState(0)
@@ -189,6 +198,23 @@ export default function MicroPage() {
           <p className="font-ja text-xl font-semibold text-rose-600">{card.kana}</p>
         )}
         <p className="text-lg font-semibold text-slate-600">{card?.ko}</p>
+        {card?.exJa && (
+          <div className="mx-auto max-w-xs rounded-xl bg-slate-100 px-3 py-2 text-left">
+            <p className="font-ja text-xs leading-relaxed">{card.exJa}</p>
+            {card.exKo && <p className="mt-0.5 text-[11px] text-slate-500">{card.exKo}</p>}
+          </div>
+        )}
+        {tts.available && card && (
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => tts.speak(card.kana)}
+            className="rounded-full bg-rose-50 px-3 py-1 text-lg ring-1 ring-rose-100"
+            aria-label="발음 듣기"
+          >
+            🔊
+          </button>
+        )}
         <p className="text-[11px] text-slate-300">← 몰라요 · 밀어서 판정 · 알아요 →</p>
       </div>
 
