@@ -24,6 +24,7 @@ const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[
   { level: 'N5', version: 5, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
   { level: 'N4', version: 4, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
   { level: 'N3', version: 1, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
+  { level: 'N2', version: 1, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
 ]
 
 function newSrsRow(cardId: string, deckId: string): SrsState {
