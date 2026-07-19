@@ -111,18 +111,24 @@ export default function DashboardPage() {
         >
           퀴즈 풀기
         </Link>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5">
           <Link
             to="/kana"
             className="block rounded-2xl border border-slate-200 bg-white p-3 text-center text-sm font-bold text-slate-500"
           >
-            <span className="font-ja">あア</span> 가나 익히기
+            <span className="font-ja">あ</span> 가나
+          </Link>
+          <Link
+            to="/grammar"
+            className="block rounded-2xl border border-slate-200 bg-white p-3 text-center text-sm font-bold text-slate-500"
+          >
+            ✍️ 문법
           </Link>
           <Link
             to="/talk"
             className="block rounded-2xl border border-slate-200 bg-white p-3 text-center text-sm font-bold text-slate-500"
           >
-            🎧 회화 듣기
+            🎧 회화
           </Link>
         </div>
       </section>

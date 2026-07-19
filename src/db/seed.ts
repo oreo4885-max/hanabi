@@ -43,6 +43,74 @@ function newSrsRow(cardId: string, deckId: string): SrsState {
   }
 }
 
+/** 덱 하나를 업서트: 카드 갱신 + 신고·SRS 진행 상태 보존 */
+async function upsertDeck(deckId: string, name: string, level: Level, words: SeedWord[]): Promise<void> {
+  const deck: Deck = {
+    id: deckId,
+    name,
+    level,
+    source: 'bundled',
+    createdAt: Date.now(),
+    cardCount: words.length,
+  }
+
+  const cards: Card[] = words.map((w) => ({
+    id: w.id,
+    deckId,
+    kanji: w.kanji,
+    kana: w.kana,
+    ko: w.ko,
+    pos: w.pos,
+    exJa: w.exJa,
+    exKo: w.exKo,
+    emoji: w.emoji,
+    mnemonic: w.mnemonic,
+    level,
+  }))
+
+  await db.transaction('rw', [db.decks, db.cards, db.srs, db.settings], async () => {
+    const existingDeck = await db.decks.get(deckId)
+    await db.decks.put({ ...deck, createdAt: existingDeck?.createdAt ?? deck.createdAt })
+
+    // flagged 상태 보존을 위해 기존 카드와 병합
+    const existingFlags = new Map<string, boolean>()
+    await db.cards.where('deckId').equals(deckId).each((c) => {
+      if (c.flagged) existingFlags.set(c.id, true)
+    })
+    await db.cards.bulkPut(
+      cards.map((c) => (existingFlags.has(c.id) ? { ...c, flagged: true } : c)),
+    )
+
+    // SRS 행은 없는 카드에만 생성 (기존 진행 상태 보존)
+    const existingSrs = new Set(
+      (await db.srs.where('deckId').equals(deckId).primaryKeys()) as string[],
+    )
+    const newRows = cards.filter((c) => !existingSrs.has(c.id)).map((c) => newSrsRow(c.id, deckId))
+    if (newRows.length > 0) await db.srs.bulkAdd(newRows)
+  })
+}
+
+interface GrammarFile {
+  version: number
+  levels: Record<string, SeedWord[]>
+}
+
+/** 문형(문법) 덱 시딩 — 단어 덱과 동일한 SRS 파이프라인에 합류 */
+async function seedGrammarDecks(): Promise<void> {
+  const versionKey = 'seed:grammar:version'
+  const file = (await import('../data/grammar.json')).default as unknown as GrammarFile
+  const seeded = await db.settings.get(versionKey)
+  if (seeded !== undefined && (seeded.value as number) >= file.version) return
+
+  for (const lv of ['n5', 'n4', 'n3', 'n2', 'n1']) {
+    const words = file.levels[lv]
+    if (!words || words.length === 0) continue
+    const level = lv.toUpperCase() as Level
+    await upsertDeck(`grammar-${lv}`, `JLPT ${level} 문법`, level, words)
+  }
+  await db.settings.put({ key: versionKey, value: file.version })
+}
+
 /** 번들 데이터셋을 IndexedDB에 시딩. version이 오르면 카드 내용만 갱신(SRS 진행 상태는 보존). */
 export async function seedBundledDecks(): Promise<void> {
   for (const bundle of BUNDLED) {
@@ -54,51 +122,9 @@ export async function seedBundledDecks(): Promise<void> {
     if (seeded !== undefined && (seeded.value as number) >= version) continue
 
     const file = await bundle.load()
-
-    const deck: Deck = {
-      id: deckId,
-      name: `JLPT ${level} 단어`,
-      level,
-      source: 'bundled',
-      createdAt: Date.now(),
-      cardCount: file.words.length,
-    }
-
-    const cards: Card[] = file.words.map((w) => ({
-      id: w.id,
-      deckId,
-      kanji: w.kanji,
-      kana: w.kana,
-      ko: w.ko,
-      pos: w.pos,
-      exJa: w.exJa,
-      exKo: w.exKo,
-      emoji: w.emoji,
-      mnemonic: w.mnemonic,
-      level,
-    }))
-
-    await db.transaction('rw', [db.decks, db.cards, db.srs, db.settings], async () => {
-      const existingDeck = await db.decks.get(deckId)
-      await db.decks.put({ ...deck, createdAt: existingDeck?.createdAt ?? deck.createdAt })
-
-      // flagged 상태 보존을 위해 기존 카드와 병합
-      const existingFlags = new Map<string, boolean>()
-      await db.cards.where('deckId').equals(deckId).each((c) => {
-        if (c.flagged) existingFlags.set(c.id, true)
-      })
-      await db.cards.bulkPut(
-        cards.map((c) => (existingFlags.has(c.id) ? { ...c, flagged: true } : c)),
-      )
-
-      // SRS 행은 없는 카드에만 생성 (기존 진행 상태 보존)
-      const existingSrs = new Set(
-        (await db.srs.where('deckId').equals(deckId).primaryKeys()) as string[],
-      )
-      const newRows = cards.filter((c) => !existingSrs.has(c.id)).map((c) => newSrsRow(c.id, deckId))
-      if (newRows.length > 0) await db.srs.bulkAdd(newRows)
-
-      await db.settings.put({ key: versionKey, value: version })
-    })
+    await upsertDeck(deckId, `JLPT ${level} 단어`, level, file.words)
+    await db.settings.put({ key: versionKey, value: version })
   }
+
+  await seedGrammarDecks()
 }
