@@ -1,0 +1,1 @@
+import{t as e}from"./esm-CsW32qAb.js";function t(t){let n=t.normalize(`NFKC`).replace(/\s+/g,``);return n?e(n):``}function n(e,n){let r=t(e);return r?r===t(n):!1}export{n as t};
