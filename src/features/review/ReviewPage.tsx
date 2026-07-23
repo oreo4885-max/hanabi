@@ -6,6 +6,7 @@ import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 import Mnemonic from '../../components/Mnemonic'
 import KanjiBreakdown from '../../components/KanjiBreakdown'
+import PitchAccent from '../../components/PitchAccent'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
   { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
@@ -116,6 +117,9 @@ export default function ReviewPage() {
           <div className="space-y-2.5 text-center">
             {current.card.kana !== current.card.kanji && (
               <p className="font-ja text-2xl font-semibold text-rose-600">{current.card.kana}</p>
+            )}
+            {current.card.pos !== '문형' && (
+              <PitchAccent id={current.card.id} kana={current.card.kana.split(';')[0].trim()} />
             )}
             <p className="text-xl font-semibold">
               {current.card.emoji && <span className="mr-2 text-3xl align-middle">{current.card.emoji}</span>}

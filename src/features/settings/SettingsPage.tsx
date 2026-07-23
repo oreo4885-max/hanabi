@@ -293,7 +293,11 @@ export default function SettingsPage() {
             Jonathan Waller, JLPT Resources (tanos.co.uk)
           </a>{' '}
           — CC BY. JLPT 공식 목록이 아닌 학습용 참고 자료입니다. 한국어 뜻은 자동 생성되어 오류가
-          있을 수 있습니다.
+          있을 수 있습니다. 피치 악센트:{' '}
+          <a className="underline" href="https://github.com/mifunetoshiro/kanjium" target="_blank" rel="noreferrer">
+            kanjium
+          </a>{' '}
+          (CC BY-SA 4.0).
         </p>
       </section>
     </div>

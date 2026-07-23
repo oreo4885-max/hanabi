@@ -1,6 +1,6 @@
 # 하나비 (Hanabi) 🎆
 
-개인 학습용 JLPT 일본어 단어 암기 PWA. 플래시카드(SM-2 간격반복), 퀴즈 5종, 26초 스피드 모드, 가나 학습, TTS 발음을 제공합니다.
+개인 학습용 JLPT 일본어 단어 암기 PWA. 플래시카드(FSRS 간격반복), 퀴즈 5종, 26초 스피드 모드, 가나 학습, 문법 활용 드릴, 한자 분해, 피치 악센트, TTS 발음을 제공합니다.
 
 **앱 사용**: https://oreo4885-max.github.io/hanabi/
 
@@ -11,7 +11,9 @@
   [jamsinclair/open-anki-jlpt-decks](https://github.com/jamsinclair/open-anki-jlpt-decks) 의 CSV를 기반으로 하며,
   표기 정규화 등 일부 수정이 있었습니다.
 - 이 목록은 **JLPT 공식 출제 목록이 아닙니다** (공식 목록은 2010년 이후 비공개). 학습 참고용입니다.
-- **한국어 뜻·품사·예문·연상 문장·이모지 매칭**: 이 프로젝트에서 AI(Claude)로 생성한 것으로, 오류가 있을 수 있습니다.
+- **한국어 뜻·품사·예문·연상 문장·이모지 매칭·한자 훈음/분해·문형**: 이 프로젝트에서 AI(Claude)로 생성한 것으로, 오류가 있을 수 있습니다.
+- **피치 악센트(억양) 데이터**: [mifunetoshiro/kanjium](https://github.com/mifunetoshiro/kanjium)
+  ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)) — `src/data/pitch.json`은 이 데이터에서 파생되어 동일 라이선스를 따릅니다.
 
 ## 개발
 
