@@ -34,6 +34,12 @@ export type SrsCardState = 'new' | 'learning' | 'review'
 
 export interface SrsState {
   cardId: string
+  /** FSRS 필드 (도입 후 채워짐 — 없으면 SM-2 시절 카드로 보고 근사 이전) */
+  stability?: number
+  difficulty?: number
+  scheduledDays?: number
+  learningSteps?: number
+  fsrsState?: number
   deckId: string
   state: SrsCardState
   ef: number

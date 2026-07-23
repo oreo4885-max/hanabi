@@ -1,5 +1,5 @@
 import { db, type Card, type DailyStats, type Grade, type StudyMode } from '../db/schema'
-import { sm2 } from '../srs/sm2'
+import { scheduleFsrs } from '../srs/fsrs'
 import { todayStr } from './dates'
 
 function emptyDay(date: string): DailyStats {
@@ -26,7 +26,7 @@ export async function recordReview(card: Card, grade: Grade, mode: StudyMode, ms
   const prev = await db.srs.get(card.id)
   if (!prev) return null
   const wasNew = prev.state === 'new'
-  const next = sm2(prev, grade, now)
+  const next = scheduleFsrs(prev, grade, now)
 
   await db.transaction('rw', [db.srs, db.reviewLog, db.dailyStats], async () => {
     await db.srs.put(next)

@@ -5,6 +5,7 @@ import { buildDailyQueue, type QueueItem } from '../../srs/queue'
 import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 import Mnemonic from '../../components/Mnemonic'
+import KanjiBreakdown from '../../components/KanjiBreakdown'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
   { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
@@ -121,6 +122,8 @@ export default function ReviewPage() {
               {current.card.ko}
             </p>
             {current.card.pos && <p className="text-xs text-slate-400">{current.card.pos}</p>}
+            {/* 한자 분해 + 한국 훈음 (문형 카드는 pos가 '문형'이라 자동 제외되는 경우가 대부분) */}
+            {current.card.pos !== '문형' && <KanjiBreakdown word={current.card.kanji} />}
             {current.card.mnemonic && <Mnemonic text={current.card.mnemonic} />}
             {current.card.exJa && (
               <div className="mx-auto flex max-w-xs items-start gap-2 rounded-xl bg-slate-100 px-4 py-3 text-left">
