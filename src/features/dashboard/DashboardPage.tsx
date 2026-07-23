@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getDueCounts } from '../../srs/queue'
@@ -76,7 +77,37 @@ export default function DashboardPage() {
       })
   }, [])
 
+  const [showAllDecks, setShowAllDecks] = useState(false)
   const remaining = counts ? counts.due + counts.fresh : null
+
+  function renderDeckRow(d: DeckProgress) {
+    const pct = d.total > 0 ? Math.round((d.learned / d.total) * 100) : 0
+    return (
+      <li key={d.id}>
+        <Link to={`/review?deck=${d.id}`} className="flex items-center gap-3 px-4 py-3">
+          <span className="w-8 shrink-0 rounded-lg bg-rose-50 py-1 text-center text-xs font-extrabold text-rose-600 ring-1 ring-rose-100">
+            {d.level ?? '—'}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-baseline justify-between text-sm">
+              <b className="truncate">{d.name.replace('JLPT ', '')}</b>
+              <span className="ml-2 shrink-0 text-xs text-slate-400">
+                {d.learned}/{d.total} · {pct}%
+              </span>
+            </span>
+            <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <span className="block h-full rounded-full bg-rose-500" style={{ width: `${pct}%` }} />
+            </span>
+          </span>
+          {d.due > 0 && (
+            <span className="shrink-0 rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white">
+              {d.due}
+            </span>
+          )}
+        </Link>
+      </li>
+    )
+  }
   const goalTotal = (doneToday ?? 0) + (remaining ?? 0)
   const progress = goalTotal > 0 ? (doneToday ?? 0) / goalTotal : 1
   const allDone = remaining === 0
@@ -157,40 +188,41 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* 레벨별 진행 */}
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-slate-500">레벨별 진행</h2>
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          {decks?.map((d) => {
-            const pct = d.total > 0 ? Math.round((d.learned / d.total) * 100) : 0
-            return (
-              <li key={d.id}>
-                <Link to={`/review?deck=${d.id}`} className="flex items-center gap-3 px-4 py-3">
-                  <span className="w-8 shrink-0 rounded-lg bg-rose-50 py-1 text-center text-xs font-extrabold text-rose-600 ring-1 ring-rose-100">
-                    {d.level ?? '—'}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-baseline justify-between text-sm">
-                      <b className="truncate">{d.name.replace('JLPT ', '')}</b>
-                      <span className="ml-2 shrink-0 text-xs text-slate-400">
-                        {d.learned}/{d.total} · {pct}%
-                      </span>
-                    </span>
-                    <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <span className="block h-full rounded-full bg-rose-500" style={{ width: `${pct}%` }} />
-                    </span>
-                  </span>
-                  {d.due > 0 && (
-                    <span className="shrink-0 rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white">
-                      {d.due}
-                    </span>
+      {/* 레벨별 진행 — 진행 중인 덱만 펼치고 나머지는 접기 */}
+      {decks &&
+        (() => {
+          const active = decks.filter((d) => d.learned > 0)
+          // 진행 중인 덱이 없으면(신규) 첫 덱만 노출하고 나머지는 접는다
+          const shown = active.length > 0 ? active : decks.slice(0, 1)
+          const shownIds = new Set(shown.map((d) => d.id))
+          const hidden = decks.filter((d) => !shownIds.has(d.id))
+          return (
+            <section>
+              <h2 className="mb-2 text-sm font-bold text-slate-500">
+                {active.length > 0 ? '진행 중인 레벨' : '학습 시작하기'}
+              </h2>
+              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                {shown.map(renderDeckRow)}
+              </ul>
+              {hidden.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllDecks((v) => !v)}
+                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-500"
+                  >
+                    {showAllDecks ? '접기 ▲' : `다른 레벨 ${hidden.length}개 ▼`}
+                  </button>
+                  {showAllDecks && (
+                    <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      {hidden.map(renderDeckRow)}
+                    </ul>
                   )}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+                </>
+              )}
+            </section>
+          )
+        })()}
     </div>
   )
 }
