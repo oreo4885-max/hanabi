@@ -9,6 +9,8 @@ import { getSetting } from '../../db/schema'
 const DAYS = 30
 /** 이 간격 이상으로 벌어진 카드는 '숙지'로 본다 (Anki의 mature 기준) */
 const MATURE_DAYS = 21
+/** 복습 정답률 집계 범위 (최근 N회) */
+const RECENT_LOGS = 5000
 
 interface DeckStat {
   id: string
@@ -50,13 +52,11 @@ export default function StatsPage() {
       if (s.lapses >= WEAK_LAPSES) weakN++
     })
 
-    // 복습 정답률: grade 0(다시)만 오답으로 본다
-    let again = 0
-    let graded = 0
-    await db.reviewLog.each((l) => {
-      graded++
-      if (l.grade === 0) again++
-    })
+    // 복습 정답률: grade 0(다시)만 오답으로 본다.
+    // 기록이 계속 쌓이므로 전체가 아닌 최근 분량만 집계해 화면이 느려지지 않게 한다.
+    const recent = await db.reviewLog.orderBy('reviewedAt').reverse().limit(RECENT_LOGS).toArray()
+    const graded = recent.length
+    const again = recent.reduce((n, l) => n + (l.grade === 0 ? 1 : 0), 0)
 
     const deckStats: DeckStat[] = decks
       .filter((d) => inTarget.has(d.id) || d.source === 'custom')
@@ -158,7 +158,7 @@ export default function StatsPage() {
             {reviewAcc === null ? '–' : `${reviewAcc}%`}
           </p>
           <p className="text-xs text-slate-400">
-            {review.graded}회 중 오답 {review.again}
+            최근 {review.graded}회 중 오답 {review.again}
           </p>
         </div>
         <div className="rounded-2xl bg-white p-4 shadow-sm">

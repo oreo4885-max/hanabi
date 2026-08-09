@@ -5,20 +5,37 @@ import BottomNav from './components/BottomNav'
 import { db, setSetting } from './db/schema'
 import { ONBOARDED_FLAG } from './lib/onboarding'
 
-const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
-const DeckListPage = lazy(() => import('./features/decks/DeckListPage'))
-const DeckDetailPage = lazy(() => import('./features/decks/DeckDetailPage'))
-const ReviewPage = lazy(() => import('./features/review/ReviewPage'))
-const QuizConfigPage = lazy(() => import('./features/quiz/QuizConfigPage'))
-const QuizPlayPage = lazy(() => import('./features/quiz/QuizPlayPage'))
-const MicroPage = lazy(() => import('./features/micro/MicroPage'))
-const KanaPage = lazy(() => import('./features/kana/KanaPage'))
-const TalkPage = lazy(() => import('./features/talk/TalkPage'))
-const GrammarPage = lazy(() => import('./features/grammar/GrammarPage'))
-const StatsPage = lazy(() => import('./features/stats/StatsPage'))
-const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
-const OnboardingPage = lazy(() => import('./features/onboarding/OnboardingPage'))
-const AuthPage = lazy(() => import('./features/auth/AuthPage'))
+/**
+ * 새 버전이 배포되면 옛 캐시에 남은 청크 주소가 404가 되어 화면이 열리지 않는다.
+ * 그 경우 한 번만 새로고침해 최신 자산을 받아온다.
+ */
+const RELOAD_KEY = 'hanabi:chunk-reloaded'
+function lazyPage<T extends { default: React.ComponentType<unknown> }>(load: () => Promise<T>) {
+  return lazy(() =>
+    load().catch((err) => {
+      if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(RELOAD_KEY)) {
+        sessionStorage.setItem(RELOAD_KEY, '1')
+        window.location.reload()
+      }
+      throw err
+    }),
+  )
+}
+
+const DashboardPage = lazyPage(() => import('./features/dashboard/DashboardPage'))
+const DeckListPage = lazyPage(() => import('./features/decks/DeckListPage'))
+const DeckDetailPage = lazyPage(() => import('./features/decks/DeckDetailPage'))
+const ReviewPage = lazyPage(() => import('./features/review/ReviewPage'))
+const QuizConfigPage = lazyPage(() => import('./features/quiz/QuizConfigPage'))
+const QuizPlayPage = lazyPage(() => import('./features/quiz/QuizPlayPage'))
+const MicroPage = lazyPage(() => import('./features/micro/MicroPage'))
+const KanaPage = lazyPage(() => import('./features/kana/KanaPage'))
+const TalkPage = lazyPage(() => import('./features/talk/TalkPage'))
+const GrammarPage = lazyPage(() => import('./features/grammar/GrammarPage'))
+const StatsPage = lazyPage(() => import('./features/stats/StatsPage'))
+const SettingsPage = lazyPage(() => import('./features/settings/SettingsPage'))
+const OnboardingPage = lazyPage(() => import('./features/onboarding/OnboardingPage'))
+const AuthPage = lazyPage(() => import('./features/auth/AuthPage'))
 
 /**
  * 온보딩 필요 여부: 아직 안 봤고 학습 이력도 없는 첫 사용자만.
