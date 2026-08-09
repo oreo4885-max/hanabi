@@ -1,6 +1,6 @@
 {
   "level": "N3",
-  "version": 1,
+  "version": 2,
   "attribution": "Word list derived from Jonathan Waller's JLPT Resources (tanos.co.uk, CC BY) via jamsinclair/open-anki-jlpt-decks. Korean glosses and examples generated for personal study.",
   "words": [
     {
@@ -243,7 +243,7 @@
       "kana": "じき",
       "ko": "곧, 머지않아",
       "pos": "부사",
-      "exJa": "母は直に戻って来ます。",
+      "exJa": "母はじきに戻って来ます。",
       "exKo": "어머니는 곧 돌아옵니다."
     },
     {
@@ -3132,7 +3132,7 @@
       "kana": "ある",
       "ko": "있다, 존재하다",
       "pos": "동사",
-      "exJa": "机の上に辞書が有ります。",
+      "exJa": "机の上に辞書があります。",
       "exKo": "책상 위에 사전이 있습니다."
     },
     {
@@ -15651,8 +15651,8 @@
       "kana": "ばいう",
       "ko": "장마",
       "pos": "명사",
-      "exJa": "六月は梅雨で雨の日が続きます。",
-      "exKo": "6월은 장마라 비 오는 날이 계속됩니다."
+      "exJa": "梅雨前線が日本列島に停滞しています。",
+      "exKo": "장마 전선이 일본 열도에 정체하고 있습니다."
     },
     {
       "id": "n3-1740",

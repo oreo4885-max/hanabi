@@ -7,6 +7,7 @@ import { useTts } from '../../lib/useTts'
 import Mnemonic from '../../components/Mnemonic'
 import KanjiBreakdown from '../../components/KanjiBreakdown'
 import PitchAccent from '../../components/PitchAccent'
+import Furigana from '../../components/Furigana'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
   { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
@@ -132,7 +133,12 @@ export default function ReviewPage() {
             {current.card.exJa && (
               <div className="mx-auto flex max-w-xs items-start gap-2 rounded-xl bg-slate-100 px-4 py-3 text-left">
                 <div className="min-w-0 flex-1">
-                  <p className="font-ja text-sm leading-relaxed">{current.card.exJa}</p>
+                  <Furigana
+                    marked={current.card.exFuri}
+                    plain={current.card.exJa}
+                    deckId={current.card.deckId}
+                    className="font-ja block text-sm leading-loose"
+                  />
                   {current.card.exKo && (
                     <p className="mt-1 text-xs text-slate-500">{current.card.exKo}</p>
                   )}

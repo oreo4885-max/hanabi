@@ -1,6 +1,6 @@
 {
   "level": "N2",
-  "version": 1,
+  "version": 2,
   "attribution": "Word list derived from Jonathan Waller's JLPT Resources (tanos.co.uk, CC BY) via jamsinclair/open-anki-jlpt-decks. Korean glosses and examples generated for personal study.",
   "words": [
     {
@@ -12645,7 +12645,7 @@
       "kana": "のりかえ",
       "ko": "환승",
       "pos": "명사",
-      "exJa": "次の駅で乗換が必要です。",
+      "exJa": "次の駅で乗り換えが必要です。",
       "exKo": "다음 역에서 환승이 필요합니다."
     },
     {

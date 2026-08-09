@@ -1,6 +1,6 @@
 {
   "level": "N1",
-  "version": 1,
+  "version": 2,
   "attribution": "Word list derived from Jonathan Waller's JLPT Resources (tanos.co.uk, CC BY) via jamsinclair/open-anki-jlpt-decks. Korean glosses and examples generated for personal study.",
   "words": [
     {
@@ -3942,8 +3942,8 @@
       "kana": "なやます",
       "ko": "괴롭히다, 성가시게 하다",
       "pos": "동사",
-      "exJa": "毎晩の騒音が近所の人々を悩ませています。",
-      "exKo": "매일 밤 소음이 이웃 사람들을 괴롭히고 있습니다."
+      "exJa": "毎晩の騒音が近所の人々を悩ましています。",
+      "exKo": "매일 밤의 소음이 이웃 사람들을 괴롭히고 있습니다."
     },
     {
       "id": "n1-0439",
@@ -5770,7 +5770,7 @@
       "ko": "영사(하다)",
       "pos": "명사",
       "exJa": "講堂で記録映画の映写が行われました。",
-      "exKo": "강당에서 기록 영화 상영이 진행되었습니다."
+      "exKo": "강당에서 기록 영화의 영사가 진행되었습니다."
     },
     {
       "id": "n1-0642",
@@ -9405,8 +9405,8 @@
       "kana": "きりゅう",
       "ko": "기류",
       "pos": "명사",
-      "exJa": "飛行機は乱気流で大きく揺れました。",
-      "exKo": "비행기는 난기류로 크게 흔들렸습니다."
+      "exJa": "上空の気流が乱れて飛行機が揺れました。",
+      "exKo": "상공의 기류가 흐트러져 비행기가 흔들렸습니다."
     },
     {
       "id": "n1-1046",

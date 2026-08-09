@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type Card, type Deck } from '../../db/schema'
 import { useTts } from '../../lib/useTts'
@@ -17,7 +17,9 @@ const WEAK_DECK: Deck = {
 
 export default function DeckDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [query, setQuery] = useState('')
+  // 예문의 한자를 눌러 들어오면 ?q=会 형태로 검색어가 넘어온다
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const [editing, setEditing] = useState<Card | 'new' | null>(null)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const tts = useTts()

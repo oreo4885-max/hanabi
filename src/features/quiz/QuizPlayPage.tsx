@@ -6,6 +6,7 @@ import { generateQuestions, makeCloze, type Question } from './generate'
 import { isCorrectKana } from '../../lib/kana'
 import { bumpDaily, logQuizAnswer, recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
+import Furigana from '../../components/Furigana'
 
 type Phase = 'answering' | 'feedback'
 
@@ -271,7 +272,12 @@ export default function QuizPlayPage() {
           {q.card.exJa && (
             <p className="mt-2 flex items-start gap-2 rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-slate-500">
               <span className="min-w-0">
-                <span className="font-ja">{q.card.exJa}</span>
+                <Furigana
+                  marked={q.card.exFuri}
+                  plain={q.card.exJa}
+                  deckId={q.card.deckId}
+                  className="font-ja leading-loose"
+                />
                 {q.card.exKo && <span className="block">{q.card.exKo}</span>}
               </span>
               {tts.available && (

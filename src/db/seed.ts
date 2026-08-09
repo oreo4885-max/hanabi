@@ -8,6 +8,7 @@ interface SeedWord {
   pos?: string
   exJa?: string
   exKo?: string
+  exFuri?: string
   emoji?: string
   mnemonic?: string
 }
@@ -22,11 +23,11 @@ interface SeedFile {
 /** 레벨별 데이터는 필요할 때만 동적 로드 (모바일 첫 화면을 가볍게). version은 여기서 관리. */
 // version은 '단어 + 문법을 한 덱으로 통합'하면서 전부 올렸다.
 const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
-  { level: 'N5', version: 6, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
+  { level: 'N5', version: 7, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
   { level: 'N4', version: 5, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
-  { level: 'N3', version: 2, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
-  { level: 'N2', version: 2, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
-  { level: 'N1', version: 2, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },
+  { level: 'N3', version: 3, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
+  { level: 'N2', version: 3, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
+  { level: 'N1', version: 3, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },
 ]
 
 function newSrsRow(cardId: string, deckId: string): SrsState {
@@ -64,6 +65,7 @@ async function upsertDeck(deckId: string, name: string, level: Level, words: See
     pos: w.pos,
     exJa: w.exJa,
     exKo: w.exKo,
+    exFuri: w.exFuri,
     emoji: w.emoji,
     mnemonic: w.mnemonic,
     level,
