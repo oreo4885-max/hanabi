@@ -18,10 +18,19 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
+/** 기본 제한 시간(초) */
+const DEFAULT_SECONDS = 60
+/** '알아요'를 맞힐 때마다 늘어나는 시간(초) — 아는 만큼 계속 이어갈 수 있다 */
+const BONUS_SEC = 3
+/** 한 세션에 준비하는 카드 수 */
+const POOL_SIZE = 200
+
 export default function MicroPage() {
   const [phase, setPhase] = useState<Phase>('ready')
-  const [seconds, setSeconds] = useState(26)
-  const [remaining, setRemaining] = useState(26)
+  const [seconds, setSeconds] = useState(DEFAULT_SECONDS)
+  const [remaining, setRemaining] = useState(DEFAULT_SECONDS)
+  const [bonus, setBonus] = useState(0)
+  const deadlineRef = useRef(0)
   const [cards, setCards] = useState<Card[]>([])
   const [index, setIndex] = useState(0)
   const [answered, setAnswered] = useState(0)
@@ -59,7 +68,7 @@ export default function MicroPage() {
   }
 
   useEffect(() => {
-    getSetting('microSeconds', 26).then((s) => {
+    getSetting('microSeconds', DEFAULT_SECONDS).then((s) => {
       setSeconds(s)
       setRemaining(s)
     })
@@ -69,28 +78,30 @@ export default function MicroPage() {
   }, [])
 
   async function start() {
-    // 오늘의 큐 우선, 부족하면 전체에서 랜덤 보충
+    // 오늘의 큐 우선, 부족하면 전체에서 랜덤 보충 (시간이 남으면 계속 이어가야 하므로 넉넉히)
     const queue = await buildDailyQueue()
     let pool: Card[] = queue.map((q) => q.card)
-    if (pool.length < 10) {
+    if (pool.length < POOL_SIZE) {
       const all = await db.cards.toArray()
       const have = new Set(pool.map((c) => c.id))
-      pool = [...pool, ...shuffle(all.filter((c) => !have.has(c.id))).slice(0, 30 - pool.length)]
+      pool = [...pool, ...shuffle(all.filter((c) => !have.has(c.id))).slice(0, POOL_SIZE - pool.length)]
     }
     setCards(shuffle(pool))
     setIndex(0)
     setAnswered(0)
     setKnown(0)
+    setBonus(0)
     setRemaining(seconds)
     finishedRef.current = false
     setPhase('playing')
 
-    const startedAt = Date.now()
+    deadlineRef.current = Date.now() + seconds * 1000
+    if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      const left = seconds - Math.floor((Date.now() - startedAt) / 1000)
+      const left = Math.ceil((deadlineRef.current - Date.now()) / 1000)
       setRemaining(Math.max(0, left))
       if (left <= 0) void finish()
-    }, 250)
+    }, 200)
   }
 
   async function finish() {
@@ -98,7 +109,7 @@ export default function MicroPage() {
     finishedRef.current = true
     if (timerRef.current) clearInterval(timerRef.current)
     setPhase('done')
-    await bumpDaily({ microSessions: 1, studySeconds: seconds })
+    await bumpDaily({ microSessions: 1, studySeconds: seconds + bonus })
   }
 
   function answer(knows: boolean) {
@@ -106,7 +117,13 @@ export default function MicroPage() {
     if (!card || phase !== 'playing') return
     void recordReview(card, knows ? 2 : 0, 'micro')
     setAnswered((a) => a + 1)
-    if (knows) setKnown((k) => k + 1)
+    if (knows) {
+      setKnown((k) => k + 1)
+      // 아는 단어를 맞히면 시간이 늘어난다
+      deadlineRef.current += BONUS_SEC * 1000
+      setBonus((b) => b + BONUS_SEC)
+      setRemaining(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)))
+    }
     if (index + 1 >= cards.length) {
       void finish()
     } else {
@@ -117,11 +134,12 @@ export default function MicroPage() {
   if (phase === 'ready') {
     return (
       <div className="flex flex-col items-center gap-6 pt-12 text-center">
-        <h1 className="text-xl font-bold">⚡ 26초 학습</h1>
+        <h1 className="text-xl font-bold">⚡ 1분 단기기억</h1>
         <p className="text-sm text-slate-500">
-          {seconds}초 동안 최대한 많은 단어를 판정하세요.
+          {seconds}초 안에 최대한 많은 단어를 판정하세요.
           <br />
-          아는 단어는 <b>알아요</b>, 모르면 <b>몰라요</b>!
+          <b className="text-emerald-600">알아요</b>를 누를 때마다{' '}
+          <b className="text-emerald-600">+{BONUS_SEC}초</b> — 아는 만큼 계속 이어집니다.
         </p>
         <button
           type="button"
@@ -145,6 +163,11 @@ export default function MicroPage() {
         <p className="text-lg">
           {answered}단어 판정 · <span className="font-bold text-emerald-600">{known}</span>개 알아요
         </p>
+        {bonus > 0 && (
+          <p className="text-sm text-slate-500">
+            보너스 시간 <b className="text-emerald-600">+{bonus}초</b> · 총 {seconds + bonus}초 학습
+          </p>
+        )}
         <div className="flex gap-2">
           <button
             type="button"

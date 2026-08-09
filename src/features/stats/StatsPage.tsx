@@ -12,6 +12,17 @@ const MATURE_DAYS = 21
 /** 복습 정답률 집계 범위 (최근 N회) */
 const RECENT_LOGS = 5000
 
+/** 메뉴별 진도에 표시할 항목 (reviewLog의 mode/quizMode 키 기준) */
+const MENU_ROWS: { key: string; label: string; sub?: string; color: string }[] = [
+  { key: 'flash', label: '복습', sub: '플래시카드', color: 'bg-rose-500' },
+  { key: 'micro', label: '1분 단기기억', color: 'bg-amber-400' },
+  { key: 'quiz:word-to-meaning', label: '퀴즈 · 뜻 고르기', color: 'bg-emerald-500' },
+  { key: 'quiz:meaning-to-word', label: '퀴즈 · 단어 고르기', color: 'bg-emerald-500' },
+  { key: 'quiz:typed', label: '퀴즈 · 주관식', color: 'bg-emerald-500' },
+  { key: 'quiz:cloze', label: '퀴즈 · 예문 빈칸', color: 'bg-emerald-500' },
+  { key: 'quiz:dictation', label: '퀴즈 · 받아쓰기', color: 'bg-emerald-500' },
+]
+
 interface DeckStat {
   id: string
   name: string
@@ -58,6 +69,16 @@ export default function StatsPage() {
     const graded = recent.length
     const again = recent.reduce((n, l) => n + (l.grade === 0 ? 1 : 0), 0)
 
+    // 메뉴별 집계 (복습 / 1분 단기기억 / 퀴즈 4종)
+    const menu = new Map<string, { total: number; correct: number }>()
+    for (const l of recent) {
+      const key = l.mode === 'quiz' ? `quiz:${l.quizMode ?? 'unknown'}` : l.mode
+      const m = menu.get(key) ?? { total: 0, correct: 0 }
+      m.total++
+      if (l.correct === true || (l.correct === undefined && l.grade > 0)) m.correct++
+      menu.set(key, m)
+    }
+
     const deckStats: DeckStat[] = decks
       .filter((d) => inTarget.has(d.id) || d.source === 'custom')
       .map((d) => ({
@@ -76,12 +97,13 @@ export default function StatsPage() {
       counts: { newN, learnN, youngN, matureN, weakN },
       review: { graded, again },
       deckStats,
+      menu,
     }
   }, [])
 
   if (!data) return <p className="text-sm text-slate-400">불러오는 중…</p>
 
-  const { days, target, counts, review, deckStats } = data
+  const { days, target, counts, review, deckStats, menu } = data
   const { newN, learnN, youngN, matureN, weakN } = counts
   const total = newN + learnN + youngN + matureN
 
@@ -183,6 +205,39 @@ export default function StatsPage() {
           <p className="text-2xl font-bold text-red-500">{weakN}</p>
           <p className="text-xs text-slate-400">2회 이상 틀림</p>
         </div>
+      </section>
+
+      {/* 메뉴별 진도 */}
+      <section className="rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-slate-600">메뉴별 진도</h2>
+        <ul className="space-y-2.5">
+          {MENU_ROWS.map((row) => {
+            const m = menu.get(row.key) ?? { total: 0, correct: 0 }
+            const acc = m.total > 0 ? Math.round((m.correct / m.total) * 100) : null
+            return (
+              <li key={row.key}>
+                <p className="flex items-baseline justify-between text-sm">
+                  <span>
+                    <b>{row.label}</b>
+                    {row.sub && <span className="ml-1 text-xs text-slate-400">{row.sub}</span>}
+                  </span>
+                  <span className="ml-2 shrink-0 text-xs text-slate-400">
+                    {m.total > 0 ? `${m.total}회 · 정답 ${acc}%` : '아직 없음'}
+                  </span>
+                </p>
+                <span className="mt-1 flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                  <span
+                    className={`block h-full ${row.color}`}
+                    style={{ width: `${acc ?? 0}%` }}
+                  />
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        <p className="mt-3 text-[11px] text-slate-400">
+          막대는 정답률, 옆 숫자는 최근 {RECENT_LOGS.toLocaleString()}회 기준 시도 횟수입니다.
+        </p>
       </section>
 
       {/* 학습량 추이 */}

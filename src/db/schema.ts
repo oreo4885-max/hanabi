@@ -59,6 +59,10 @@ export interface ReviewLogEntry {
   reviewedAt: number
   grade: Grade
   mode: StudyMode
+  /** 퀴즈일 때 세부 유형 (뜻 고르기·주관식 등) — 메뉴별 통계에 쓰인다 */
+  quizMode?: string
+  /** 정답 여부 (퀴즈처럼 맞고 틀림이 분명한 모드에서만) */
+  correct?: boolean
   msToAnswer?: number
   newIntervalDays?: number
 }

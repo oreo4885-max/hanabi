@@ -170,7 +170,7 @@ export default function DashboardPage() {
       {/* 빠른 실행 */}
       <div className="grid grid-cols-2 gap-2.5">
         <Link to="/micro" className="rounded-2xl bg-slate-800 p-3.5 text-center font-bold text-white">
-          ⚡ 26초 스피드
+          ⚡ 1분 단기기억
         </Link>
         <Link to="/quiz" className="rounded-2xl border border-slate-200 bg-white p-3.5 text-center font-bold text-slate-800">
           ✏️ 퀴즈

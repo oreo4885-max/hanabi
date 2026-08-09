@@ -42,14 +42,41 @@ async function collectNewCards(target: Level, budget: number): Promise<SrsState[
   for (const id of [...deckIdsForTarget(target), ...custom]) {
     if (out.length >= budget) break
     const rows = await db.srs.where('[deckId+state]').equals([id, 'new']).toArray()
-    rows.sort(
-      (a, b) =>
-        Number(isGrammarCard(a.cardId)) - Number(isGrammarCard(b.cardId)) ||
-        a.cardId.localeCompare(b.cardId),
-    )
-    out.push(...rows.slice(0, budget - out.length))
+    // 사전 순서 그대로면 青 / 青い 처럼 비슷한 말이 줄줄이 나오므로 무작위로 섞는다.
+    // 단어를 먼저 도입하는 원칙은 유지.
+    const words = shuffle(rows.filter((r) => !isGrammarCard(r.cardId)))
+    const grammar = shuffle(rows.filter((r) => isGrammarCard(r.cardId)))
+    out.push(...[...words, ...grammar].slice(0, budget - out.length))
   }
   return out.slice(0, budget)
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/** 헷갈리기 쉬운 카드가 잇달아 나오지 않게 하는 기준 (표제어 첫 글자) */
+function similarKey(item: QueueItem): string {
+  const head = item.card.kanji.replace(/[〜～\s]/g, '')
+  return (head || item.card.kana).slice(0, 1)
+}
+
+/** 같은 첫 글자(青/青い 등)가 연속되지 않도록 순서를 재배치한다. */
+function spreadSimilar(items: QueueItem[]): QueueItem[] {
+  const pending = [...items]
+  const out: QueueItem[] = []
+  while (pending.length > 0) {
+    const prev = out.length > 0 ? similarKey(out[out.length - 1]) : null
+    let idx = prev === null ? 0 : pending.findIndex((it) => similarKey(it) !== prev)
+    if (idx === -1) idx = 0 // 남은 게 전부 같은 계열이면 어쩔 수 없이 이어서
+    out.push(pending.splice(idx, 1)[0])
+  }
+  return out
 }
 
 /** 취약 단어(자주 틀린 카드)를 lapses 많은 순으로. due와 무관한 집중 연습용. */
@@ -97,9 +124,10 @@ export async function buildDailyQueue(deckId?: string): Promise<QueueItem[]> {
 
   const rows = interleave(dueRows, newRows)
   const cards = await db.cards.bulkGet(rows.map((r) => r.cardId))
-  return rows
+  const items = rows
     .map((srs, i) => ({ srs, card: cards[i] }))
     .filter((item): item is QueueItem => item.card !== undefined)
+  return spreadSimilar(items)
 }
 
 /** 복습 사이에 신규 카드를 고르게 섞는다. */

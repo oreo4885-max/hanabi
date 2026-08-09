@@ -4,7 +4,7 @@ import { db, getSetting, type Card } from '../../db/schema'
 import { useSession } from '../../stores/session'
 import { generateQuestions, makeCloze, type Question } from './generate'
 import { isCorrectKana } from '../../lib/kana'
-import { bumpDaily, recordReview } from '../../lib/stats'
+import { bumpDaily, logQuizAnswer, recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 
 type Phase = 'answering' | 'feedback'
@@ -86,6 +86,7 @@ export default function QuizPlayPage() {
     setPhase('feedback')
     if (correct) setCorrectCount((c) => c + 1)
     await bumpDaily({ quizTotal: 1, quizCorrect: correct ? 1 : 0 })
+    await logQuizAnswer(q.card.id, config!.mode, correct)
     if (!correct) {
       // 이미 학습을 시작한 카드만 SRS에 오답 반영 (새 카드의 도입 순서는 건드리지 않음)
       const srs = await db.srs.get(q.card.id)

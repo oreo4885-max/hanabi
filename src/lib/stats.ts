@@ -6,6 +6,24 @@ function emptyDay(date: string): DailyStats {
   return { date, reviews: 0, newCards: 0, quizTotal: 0, quizCorrect: 0, microSessions: 0, studySeconds: 0 }
 }
 
+/** 퀴즈 응답 1건을 기록 (SRS 전이와 무관하게 메뉴별 통계용으로 남긴다) */
+export async function logQuizAnswer(
+  cardId: string,
+  quizMode: string,
+  correct: boolean,
+  msToAnswer?: number,
+): Promise<void> {
+  await db.reviewLog.add({
+    cardId,
+    reviewedAt: Date.now(),
+    grade: correct ? 2 : 0,
+    mode: 'quiz',
+    quizMode,
+    correct,
+    msToAnswer,
+  })
+}
+
 export async function bumpDaily(patch: Partial<Omit<DailyStats, 'date'>>): Promise<void> {
   const date = todayStr()
   await db.transaction('rw', db.dailyStats, async () => {
