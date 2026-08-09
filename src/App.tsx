@@ -1,9 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import BottomNav from './components/BottomNav'
 import { db, setSetting } from './db/schema'
-import { ONBOARDED_FLAG } from './lib/onboarding'
+import { ONBOARDED_FLAG, markOnboarded } from './lib/onboarding'
 import { AppLoading } from './components/AppFallback'
 
 /**
@@ -44,17 +44,22 @@ const AuthPage = lazyPage(() => import('./features/auth/AuthPage'))
  */
 function useNeedsOnboarding(): boolean | undefined {
   const justFinished = typeof localStorage !== 'undefined' && localStorage.getItem(ONBOARDED_FLAG) === '1'
+
+  // liveQuery 안에서는 읽기만 한다. 여기서 쓰기를 하면 Dexie가 트랜잭션 오류를 던진다.
   const fromDb = useLiveQuery(async () => {
     const flag = await db.settings.get('onboarded')
     if (flag?.value === true) return false
-    const hasHistory = (await db.reviewLog.limit(1).count()) > 0
-    if (hasHistory) {
-      // 기존 사용자는 온보딩을 건너뛰고 다시 묻지 않는다
-      await setSetting('onboarded', true)
-      return false
-    }
-    return true
+    // 학습 이력이 있으면 이미 쓰던 사용자이므로 온보딩을 띄우지 않는다
+    return (await db.reviewLog.limit(1).count()) === 0
   }, [])
+
+  // 판정 결과 기록은 쿼리 밖(부수효과)에서 처리
+  useEffect(() => {
+    if (fromDb === false) {
+      markOnboarded()
+      void setSetting('onboarded', true)
+    }
+  }, [fromDb])
 
   if (justFinished) return false
   return fromDb
