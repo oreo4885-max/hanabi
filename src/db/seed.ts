@@ -24,7 +24,7 @@ interface SeedFile {
 // version은 '단어 + 문법을 한 덱으로 통합'하면서 전부 올렸다.
 const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
   { level: 'N5', version: 8, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
-  { level: 'N4', version: 6, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
+  { level: 'N4', version: 7, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
   { level: 'N3', version: 4, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
   { level: 'N2', version: 3, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
   { level: 'N1', version: 3, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },
