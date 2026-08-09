@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { seedBundledDecks } from './db/seed'
 import { startReminderLoop } from './lib/reminder'
+import { AppErrorBoundary } from './components/AppFallback'
 
 seedBundledDecks()
   .then(() => startReminderLoop())
@@ -16,8 +17,10 @@ if ('storage' in navigator && navigator.storage?.persist) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <App />
-    </BrowserRouter>
+    <AppErrorBoundary>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <App />
+      </BrowserRouter>
+    </AppErrorBoundary>
   </StrictMode>,
 )

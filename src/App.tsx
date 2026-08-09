@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import BottomNav from './components/BottomNav'
 import { db, setSetting } from './db/schema'
 import { ONBOARDED_FLAG } from './lib/onboarding'
+import { AppLoading } from './components/AppFallback'
 
 /**
  * 새 버전이 배포되면 옛 캐시에 남은 청크 주소가 404가 되어 화면이 열리지 않는다.
@@ -66,8 +67,8 @@ export default function App() {
   const onOnboarding = location.pathname === '/onboarding'
   const fullscreen = onAuth || onOnboarding
 
-  // 판정 전에는 깜빡임 방지를 위해 아무것도 그리지 않는다
-  if (needsOnboarding === undefined) return null
+  // 첫 시딩이 오래 걸릴 수 있으므로 백지 대신 준비 화면을 보여준다
+  if (needsOnboarding === undefined) return <AppLoading />
 
   if (needsOnboarding && !fullscreen) {
     return <Navigate to="/onboarding" replace />
