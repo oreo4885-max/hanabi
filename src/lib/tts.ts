@@ -48,6 +48,50 @@ export function ttsAvailable(): boolean {
   return jaVoices().length > 0
 }
 
+/** 목소리 이름으로 성별 추정 (Windows/Edge·macOS·Android 기본 일본어 음성 기준) */
+const FEMALE_NAMES = [
+  'Nanami', 'Ayumi', 'Haruka', 'Kyoko', 'Mayu', 'Sayaka', 'Shiori', 'Aoi', 'Hina',
+  'Mio', 'O-ren', 'Oren',
+]
+const MALE_NAMES = ['Keita', 'Ichiro', 'Otoya', 'Daichi', 'Naoki', 'Masaru', 'Hattori']
+
+export interface VoiceLabel {
+  gender: '여성' | '남성' | null
+  /** Edge 신경망(Natural) 등 고품질 음성 여부 */
+  natural: boolean
+}
+
+export function labelJaVoice(v: SpeechSynthesisVoice): VoiceLabel {
+  const name = v.name
+  // 안드로이드 음성은 이름에 female/male이 직접 들어간다
+  const gender = /female/i.test(name)
+    ? '여성'
+    : /\bmale/i.test(name)
+      ? '남성'
+      : FEMALE_NAMES.some((n) => name.includes(n))
+        ? '여성'
+        : MALE_NAMES.some((n) => name.includes(n))
+          ? '남성'
+          : /google/i.test(name)
+            ? '여성' // 구글 일본어 기본 음성은 여성
+            : null
+  return { gender, natural: /natural|neural/i.test(name) }
+}
+
+/** 목록에 보여줄 짧은 이름 — 'Microsoft Nanami Online (Natural) - Japanese (Japan)' → 'Nanami' */
+export function shortVoiceName(v: SpeechSynthesisVoice): string {
+  const known = [...FEMALE_NAMES, ...MALE_NAMES].find((n) => v.name.includes(n))
+  if (known) return known
+  if (/google/i.test(v.name)) return '구글 일본어'
+  return (
+    v.name
+      .replace(/^Microsoft\s*/i, '')
+      .replace(/\s*(Online\s*)?\(.*?\)\s*/g, ' ')
+      .replace(/\s*-\s*Japanese.*$/i, '')
+      .trim() || v.name
+  )
+}
+
 /** 선호 이름 → Natural(Edge 신경망) → Google → 아무 일본어 음성 순으로 선택 */
 export function pickJaVoice(preferredName?: string): SpeechSynthesisVoice | null {
   const ja = jaVoices()
@@ -62,6 +106,17 @@ export function pickJaVoice(preferredName?: string): SpeechSynthesisVoice | null
     ja[0]
   )
 }
+
+/** 학습용 기본 속도 — 원어민 속도(1.0)는 초급자에게 빨라서 조금 낮춘다 */
+export const DEFAULT_TTS_RATE = 0.85
+
+/** 설정 화면에서 고를 수 있는 속도 프리셋 */
+export const RATE_PRESETS: { value: number; label: string }[] = [
+  { value: 0.6, label: '아주 느리게' },
+  { value: 0.75, label: '느리게' },
+  { value: 0.85, label: '보통' },
+  { value: 1, label: '원어민' },
+]
 
 export interface SpeakOptions {
   rate?: number
@@ -88,7 +143,7 @@ export function speakJa(text: string, opts: SpeakOptions = {}): void {
   const utter = new SpeechSynthesisUtterance(text)
   utter.voice = voice
   utter.lang = voice.lang
-  utter.rate = opts.rate ?? 0.9
+  utter.rate = opts.rate ?? DEFAULT_TTS_RATE
   if (opts.onEnd) utter.onend = opts.onEnd
   currentUtter = utter
 

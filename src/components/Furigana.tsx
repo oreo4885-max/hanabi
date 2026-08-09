@@ -1,30 +1,7 @@
 import { Link } from 'react-router-dom'
+import { parseFurigana } from '../lib/furigana'
 
-/** `会(あ)います` 형태의 마크업을 한자 덩어리와 읽기로 분해 */
-interface Segment {
-  text: string
-  reading?: string
-}
-
-const RUBY_RE = /([一-鿿々〆ヵヶ]+)\(([ぁ-んー]+)\)/g
-
-export function parseFurigana(marked: string): Segment[] {
-  const out: Segment[] = []
-  let last = 0
-  for (const m of marked.matchAll(RUBY_RE)) {
-    const idx = m.index ?? 0
-    if (idx > last) out.push({ text: marked.slice(last, idx) })
-    out.push({ text: m[1], reading: m[2] })
-    last = idx + m[0].length
-  }
-  if (last < marked.length) out.push({ text: marked.slice(last) })
-  return out
-}
-
-/** 마크업에서 후리가나를 걷어낸 원문 (TTS·검증용) */
-export function stripFurigana(marked: string): string {
-  return marked.replace(RUBY_RE, '$1')
-}
+export { parseFurigana, stripFurigana } from '../lib/furigana'
 
 interface Props {
   /** 후리가나 마크업 문장. 없으면 plain을 그대로 보여준다 */
@@ -59,7 +36,8 @@ export default function Furigana({ marked, plain, deckId, className }: Props) {
             key={i}
             to={`/decks/${deckId}?q=${encodeURIComponent(seg.text)}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-inherit no-underline"
+            // 눌러볼 수 있다는 걸 색으로 알린다
+            className="text-sky-600 underline decoration-sky-300 decoration-dotted underline-offset-4"
             title={`${seg.text} 단어장에서 찾기`}
           >
             {body}

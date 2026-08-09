@@ -5,6 +5,7 @@ import { db, type Card, type Deck } from '../../db/schema'
 import { useTts } from '../../lib/useTts'
 import { WEAK_LAPSES } from '../../srs/queue'
 import CardEditor from './CardEditor'
+import { useSession } from '../../stores/session'
 
 const WEAK_DECK: Deck = {
   id: 'weak',
@@ -22,6 +23,7 @@ export default function DeckDetailPage() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
   const [editing, setEditing] = useState<Card | 'new' | null>(null)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
+  const reviewSession = useSession((s) => s.review)
   const tts = useTts()
   const navigate = useNavigate()
 
@@ -73,6 +75,19 @@ export default function DeckDetailPage() {
 
   return (
     <div className="space-y-4">
+      {/* 복습 중 예문의 한자를 눌러 들어온 경우, 보던 카드로 곧장 돌아갈 수 있게 한다 */}
+      {reviewSession && reviewSession.queue.length > 0 && (
+        <Link
+          to={reviewSession.deckId ? `/review?deck=${reviewSession.deckId}` : '/review'}
+          className="flex items-center justify-between rounded-2xl bg-rose-600 px-4 py-3 font-bold text-white"
+        >
+          <span>← 복습으로 돌아가기</span>
+          <span className="text-sm font-normal opacity-80">
+            {reviewSession.queue[0]?.card.kanji} · 남은 {reviewSession.queue.length}장
+          </span>
+        </Link>
+      )}
+
       <header className="flex items-center justify-between">
         <div>
           <Link to="/decks" className="text-xs text-slate-400">

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TALK_THEMES } from '../../data/talk'
 import { getSetting } from '../../db/schema'
-import { initVoices, jaVoices, speakJa } from '../../lib/tts'
+import { DEFAULT_TTS_RATE, initVoices, jaVoices, speakJa } from '../../lib/tts'
 
 export default function TalkPage() {
   const [themeKey, setThemeKey] = useState(TALK_THEMES[0].key)
@@ -10,7 +10,7 @@ export default function TalkPage() {
   const [playingAll, setPlayingAll] = useState(false)
   const [playingIndex, setPlayingIndex] = useState<number | null>(null)
   const [available, setAvailable] = useState(false)
-  const [rate, setRate] = useState(0.9)
+  const [rate, setRate] = useState(DEFAULT_TTS_RATE)
   const voiceName = useRef<string | undefined>(undefined)
   const stopRef = useRef(false)
 
@@ -18,7 +18,7 @@ export default function TalkPage() {
     Promise.all([
       initVoices(),
       getSetting<string | undefined>('ttsVoice', undefined),
-      getSetting('ttsRate', 0.9),
+      getSetting('ttsRate', DEFAULT_TTS_RATE),
     ]).then(([, v, r]) => {
       setAvailable(jaVoices().length > 0)
       voiceName.current = v || undefined

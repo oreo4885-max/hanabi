@@ -8,6 +8,8 @@ import Mnemonic from '../../components/Mnemonic'
 import KanjiBreakdown from '../../components/KanjiBreakdown'
 import PitchAccent from '../../components/PitchAccent'
 import Furigana from '../../components/Furigana'
+import { speakableExample } from '../../lib/furigana'
+import { useSession } from '../../stores/session'
 
 const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
   { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
@@ -23,9 +25,15 @@ export default function ReviewPage() {
   const [params] = useSearchParams()
   const deckId = params.get('deck') ?? undefined
 
-  const [queue, setQueue] = useState<QueueItem[] | null>(null)
-  const [flipped, setFlipped] = useState(false)
-  const [done, setDone] = useState(0)
+  // 단어장에 다녀와도 보던 카드로 돌아오도록 세션을 전역에 보관한다
+  const session = useSession((s) => s.review)
+  const setSession = useSession((s) => s.setReview)
+  const updateSession = useSession((s) => s.updateReview)
+
+  const resumable = session && session.deckId === deckId ? session : null
+  const [queue, setQueue] = useState<QueueItem[] | null>(resumable?.queue ?? null)
+  const [flipped, setFlipped] = useState(resumable?.flipped ?? false)
+  const [done, setDone] = useState(resumable?.done ?? 0)
   const [flagged, setFlagged] = useState(false)
   const [showReading, setShowReading] = useState(false)
 
@@ -36,13 +44,20 @@ export default function ReviewPage() {
   const tts = useTts()
 
   useEffect(() => {
+    // 이어서 볼 세션이 있으면 큐를 새로 만들지 않는다
+    if (resumable) return
     let alive = true
     buildDailyQueue(deckId).then((q) => {
-      if (alive) setQueue(q)
+      if (!alive) return
+      setQueue(q)
+      setDone(0)
+      setFlipped(false)
+      setSession({ deckId, queue: q, done: 0, flipped: false })
     })
     return () => {
       alive = false
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId])
 
   const currentCardId = queue?.[0]?.card.id
@@ -70,28 +85,37 @@ export default function ReviewPage() {
         <p className="text-5xl">🎉</p>
         <h1 className="text-xl font-bold">오늘 복습 완료!</h1>
         <p className="text-sm text-slate-500">{done > 0 ? `${done}장을 학습했습니다.` : '지금은 복습할 카드가 없습니다.'}</p>
-        <Link to="/" className="rounded-xl bg-rose-600 px-6 py-2.5 font-semibold text-white">
+        <Link
+          to="/"
+          onClick={() => setSession(null)}
+          className="rounded-xl bg-rose-600 px-6 py-2.5 font-semibold text-white"
+        >
           홈으로
         </Link>
       </div>
     )
   }
 
+  function flip() {
+    setFlipped(true)
+    updateSession({ flipped: true })
+  }
+
   async function grade(g: Grade) {
     if (!current) return
     const ms = Date.now() - shownAt.current
     const next = await recordReview(current.card, g, 'flash', ms)
-    setQueue((q) => {
-      if (!q) return q
-      const rest = q.slice(1)
-      // 곧 다시 due가 되는 카드(학습 단계)는 세션 뒤쪽에 재삽입
-      if (next && next.dueAt <= Date.now() + REQUEUE_WINDOW_MS) {
-        return [...rest, { card: current.card, srs: next }]
-      }
-      return rest
-    })
-    setDone((d) => d + 1)
+    const rest = queue!.slice(1)
+    // 곧 다시 due가 되는 카드(학습 단계)는 세션 뒤쪽에 재삽입
+    const nextQueue =
+      next && next.dueAt <= Date.now() + REQUEUE_WINDOW_MS
+        ? [...rest, { card: current.card, srs: next }]
+        : rest
+    const nextDone = done + 1
+    setQueue(nextQueue)
+    setDone(nextDone)
     setFlipped(false)
+    updateSession({ queue: nextQueue, done: nextDone, flipped: false })
     shownAt.current = Date.now()
   }
 
@@ -104,7 +128,7 @@ export default function ReviewPage() {
 
       <button
         type="button"
-        onClick={() => setFlipped(true)}
+        onClick={flip}
         className="flex flex-1 flex-col items-center justify-center gap-5 rounded-3xl border border-slate-200 bg-white p-6"
       >
         <div>
@@ -149,10 +173,10 @@ export default function ReviewPage() {
                     tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation()
-                      tts.speak(current.card.exJa!)
+                      tts.speak(speakableExample(current.card))
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') tts.speak(current.card.exJa!)
+                      if (e.key === 'Enter') tts.speak(speakableExample(current.card))
                     }}
                     className="shrink-0 rounded-full p-1 text-base hover:bg-white"
                     aria-label="예문 듣기"
@@ -220,7 +244,7 @@ export default function ReviewPage() {
         ) : (
           <button
             type="button"
-            onClick={() => setFlipped(true)}
+            onClick={flip}
             className="col-span-4 rounded-xl bg-rose-600 py-3.5 font-bold text-white"
           >
             답 보기

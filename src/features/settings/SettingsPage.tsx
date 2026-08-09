@@ -2,13 +2,24 @@ import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { db, getSetting, setSetting, type Level } from '../../db/schema'
-import { initVoices, jaVoices, speakJa } from '../../lib/tts'
+import {
+  DEFAULT_TTS_RATE,
+  RATE_PRESETS,
+  initVoices,
+  jaVoices,
+  labelJaVoice,
+  shortVoiceName,
+  speakJa,
+} from '../../lib/tts'
 import { downloadBackup, importBackup, resetAll } from '../../lib/backup'
 import { LEVEL_DESC, LEVEL_ORDER } from '../../lib/levels'
 import { DEFAULT_TARGET_LEVEL } from '../../srs/queue'
 import { useAuth } from '../../lib/useAuth'
 import { signOut } from '../../lib/supabase'
 import { resetSyncCursor, syncNow } from '../../lib/sync'
+
+/** 미리 듣기 문장 — 속도·목소리 차이를 느낄 수 있을 만큼의 길이 */
+const SAMPLE_JA = 'こんにちは。今日は日本語を勉強しましょう。'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -39,7 +50,7 @@ export default function SettingsPage() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [ttsReady, setTtsReady] = useState(false)
   const [voiceName, setVoiceName] = useState('')
-  const [rate, setRate] = useState(0.9)
+  const [rate, setRate] = useState(DEFAULT_TTS_RATE)
   const [newLimit, setNewLimit] = useState(10)
   const [reviewLimit, setReviewLimit] = useState(100)
   const [backupMsg, setBackupMsg] = useState('')
@@ -94,7 +105,7 @@ export default function SettingsPage() {
     Promise.all([
       initVoices(),
       getSetting('ttsVoice', ''),
-      getSetting('ttsRate', 0.9),
+      getSetting('ttsRate', DEFAULT_TTS_RATE),
       getSetting('dailyNewLimit', 10),
       getSetting('dailyReviewLimit', 100),
       getSetting('examDate', ''),
@@ -303,47 +314,107 @@ export default function SettingsPage() {
         )}
         {voices.length > 0 && (
           <>
-            <label className="block text-sm">
-              음성
-              <select
-                value={voiceName}
-                onChange={async (e) => {
-                  setVoiceName(e.target.value)
-                  await setSetting('ttsVoice', e.target.value)
-                }}
-                className="mt-1 w-full rounded-lg border border-rose-100 px-3 py-2"
-              >
-                <option value="">자동 (권장)</option>
-                {voices.map((v) => (
-                  <option key={v.name} value={v.name}>
-                    {v.name}
-                  </option>
+            <div className="space-y-1.5">
+              <p className="text-sm">목소리</p>
+              {/* 이름만으로는 남녀를 알 수 없어 성별을 붙이고, 각 줄에서 바로 들어볼 수 있게 한다 */}
+              {[{ name: '', label: '자동 (권장)' }, ...voices.map((v) => ({ name: v.name, label: '' }))].map(
+                (opt) => {
+                  const v = voices.find((x) => x.name === opt.name)
+                  const meta = v ? labelJaVoice(v) : null
+                  const selected = voiceName === opt.name
+                  return (
+                    <div
+                      key={opt.name || 'auto'}
+                      className={`flex items-center gap-2 rounded-xl px-3 py-2 ${
+                        selected ? 'bg-rose-600 text-white' : 'bg-white ring-1 ring-slate-200'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setVoiceName(opt.name)
+                          await setSetting('ttsVoice', opt.name)
+                          speakJa(SAMPLE_JA, { voiceName: opt.name || undefined, rate })
+                        }}
+                        className="flex flex-1 items-center gap-2 text-left text-sm font-semibold"
+                      >
+                        <span>{v ? shortVoiceName(v) : opt.label}</span>
+                        {meta?.gender && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                              selected
+                                ? 'bg-white/20'
+                                : meta.gender === '여성'
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {meta.gender}
+                          </span>
+                        )}
+                        {meta?.natural && (
+                          <span className={`text-[11px] ${selected ? 'opacity-80' : 'text-slate-400'}`}>
+                            고품질
+                          </span>
+                        )}
+                      </button>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => speakJa(SAMPLE_JA, { voiceName: opt.name || undefined, rate })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') speakJa(SAMPLE_JA, { voiceName: opt.name || undefined, rate })
+                        }}
+                        className="shrink-0 rounded-full px-2 py-1 text-base"
+                        aria-label="미리 듣기"
+                      >
+                        🔊
+                      </span>
+                    </div>
+                  )
+                },
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-sm">말하기 속도</p>
+              <div className="flex gap-1.5">
+                {RATE_PRESETS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={async () => {
+                      setRate(p.value)
+                      await setSetting('ttsRate', p.value)
+                      speakJa(SAMPLE_JA, { voiceName: voiceName || undefined, rate: p.value })
+                    }}
+                    className={`flex-1 rounded-xl py-2 text-xs font-bold ${
+                      Math.abs(rate - p.value) < 0.01
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-white text-slate-500 ring-1 ring-slate-200'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
                 ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              속도: {rate.toFixed(1)}
+              </div>
               <input
                 type="range"
                 min="0.5"
-                max="1.5"
-                step="0.1"
+                max="1.3"
+                step="0.05"
                 value={rate}
                 onChange={async (e) => {
                   const v = Number(e.target.value)
                   setRate(v)
                   await setSetting('ttsRate', v)
                 }}
-                className="mt-1 w-full accent-rose-600"
+                onMouseUp={() => speakJa(SAMPLE_JA, { voiceName: voiceName || undefined, rate })}
+                onTouchEnd={() => speakJa(SAMPLE_JA, { voiceName: voiceName || undefined, rate })}
+                className="w-full accent-rose-600"
               />
-            </label>
-            <button
-              type="button"
-              onClick={() => speakJa('こんにちは、はなびです。', { voiceName: voiceName || undefined, rate })}
-              className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
-            >
-              🔊 테스트 재생
-            </button>
+              <p className="text-xs text-slate-400">현재 {rate.toFixed(2)}배속</p>
+            </div>
           </>
         )}
       </section>

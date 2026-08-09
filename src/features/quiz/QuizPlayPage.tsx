@@ -7,6 +7,7 @@ import { isCorrectKana } from '../../lib/kana'
 import { bumpDaily, logQuizAnswer, recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 import Furigana from '../../components/Furigana'
+import { speakableExample } from '../../lib/furigana'
 
 type Phase = 'answering' | 'feedback'
 
@@ -283,7 +284,7 @@ export default function QuizPlayPage() {
               {tts.available && (
                 <button
                   type="button"
-                  onClick={() => tts.speak(q.card.exJa!)}
+                  onClick={() => tts.speak(speakableExample(q.card))}
                   className="shrink-0 text-base"
                   aria-label="예문 듣기"
                 >
