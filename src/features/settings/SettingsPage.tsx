@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSetting, setSetting } from '../../db/schema'
+import { useNavigate } from 'react-router-dom'
+import { db, getSetting, setSetting, type Level } from '../../db/schema'
 import { initVoices, jaVoices, speakJa } from '../../lib/tts'
 import { downloadBackup, importBackup, resetAll } from '../../lib/backup'
+import { LEVEL_DESC, LEVEL_ORDER } from '../../lib/levels'
+import { DEFAULT_TARGET_LEVEL } from '../../srs/queue'
 
 export default function SettingsPage() {
+  const navigate = useNavigate()
+  const [targetLevel, setTargetLevel] = useState<Level>(DEFAULT_TARGET_LEVEL)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [ttsReady, setTtsReady] = useState(false)
   const [voiceName, setVoiceName] = useState('')
@@ -16,6 +21,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getSetting('showReading', true).then(setShowReading)
+    getSetting<Level>('targetLevel', DEFAULT_TARGET_LEVEL).then(setTargetLevel)
   }, [])
   const [examDate, setExamDate] = useState('')
   const [reminderOn, setReminderOn] = useState(false)
@@ -86,6 +92,40 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">설정</h1>
+
+      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="font-semibold">목표 레벨</h2>
+        <p className="text-xs leading-relaxed text-slate-400">
+          선택한 레벨까지의 단어·문법만 학습 대상이 됩니다. (예: N3 선택 시 N5·N4·N3)
+        </p>
+        <div className="flex gap-1.5">
+          {LEVEL_ORDER.map((lv) => (
+            <button
+              key={lv}
+              type="button"
+              onClick={async () => {
+                setTargetLevel(lv)
+                await setSetting('targetLevel', lv)
+              }}
+              className={`flex-1 rounded-xl py-2 text-sm font-extrabold ${
+                targetLevel === lv
+                  ? 'bg-rose-600 text-white'
+                  : 'bg-white text-slate-500 ring-1 ring-slate-200'
+              }`}
+            >
+              {lv}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">{LEVEL_DESC[targetLevel]}</p>
+        <button
+          type="button"
+          onClick={() => navigate('/onboarding')}
+          className="w-full rounded-xl bg-white py-2 text-sm font-semibold text-slate-500 ring-1 ring-slate-200"
+        >
+          📖 사용법 다시 보기
+        </button>
+      </section>
 
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="font-semibold">학습량</h2>
