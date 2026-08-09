@@ -17,6 +17,7 @@ const GrammarPage = lazy(() => import('./features/grammar/GrammarPage'))
 const StatsPage = lazy(() => import('./features/stats/StatsPage'))
 const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 const OnboardingPage = lazy(() => import('./features/onboarding/OnboardingPage'))
+const AuthPage = lazy(() => import('./features/auth/AuthPage'))
 
 /** 온보딩 필요 여부: 아직 안 봤고 학습 이력도 없는 첫 사용자만 */
 function useNeedsOnboarding(): boolean | undefined {
@@ -36,23 +37,26 @@ function useNeedsOnboarding(): boolean | undefined {
 export default function App() {
   const location = useLocation()
   const needsOnboarding = useNeedsOnboarding()
+  const onAuth = location.pathname === '/auth'
   const onOnboarding = location.pathname === '/onboarding'
+  const fullscreen = onAuth || onOnboarding
 
   // 판정 전에는 깜빡임 방지를 위해 아무것도 그리지 않는다
   if (needsOnboarding === undefined) return null
 
-  if (needsOnboarding && !onOnboarding) {
+  if (needsOnboarding && !fullscreen) {
     return <Navigate to="/onboarding" replace />
   }
 
   return (
     <div className="mx-auto flex min-h-svh max-w-lg flex-col">
-      <main className={`flex-1 px-4 pt-6 ${onOnboarding ? 'pb-6' : 'pb-24'}`}>
+      <main className={`flex-1 px-4 pt-6 ${fullscreen ? 'pb-6' : 'pb-24'}`}>
         <Suspense
           fallback={<p className="pt-16 text-center text-sm text-slate-400">불러오는 중…</p>}
         >
           <Routes>
             <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<DashboardPage />} />
             <Route path="/decks" element={<DeckListPage />} />
             <Route path="/decks/:id" element={<DeckDetailPage />} />
@@ -68,7 +72,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
-      {!onOnboarding && <BottomNav />}
+      {!fullscreen && <BottomNav />}
     </div>
   )
 }

@@ -13,6 +13,7 @@ export async function bumpDaily(patch: Partial<Omit<DailyStats, 'date'>>): Promi
     for (const [k, v] of Object.entries(patch)) {
       ;(row as unknown as Record<string, number>)[k] += v as number
     }
+    row.updatedAt = Date.now()
     await db.dailyStats.put(row)
   })
 }
@@ -28,6 +29,8 @@ export async function recordReview(card: Card, grade: Grade, mode: StudyMode, ms
   const wasNew = prev.state === 'new'
   const next = scheduleFsrs(prev, grade, now)
 
+  next.updatedAt = now
+
   await db.transaction('rw', [db.srs, db.reviewLog, db.dailyStats], async () => {
     await db.srs.put(next)
     await db.reviewLog.add({
@@ -42,6 +45,7 @@ export async function recordReview(card: Card, grade: Grade, mode: StudyMode, ms
     const row = (await db.dailyStats.get(date)) ?? emptyDay(date)
     row.reviews += 1
     if (wasNew) row.newCards += 1
+    row.updatedAt = now
     await db.dailyStats.put(row)
   })
 

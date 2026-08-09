@@ -49,6 +49,8 @@ export interface SrsState {
   lapses: number
   dueAt: number
   lastReviewedAt: number | null
+  /** 마지막 변경 시각 — 계정 동기화의 충돌 해결 기준 */
+  updatedAt?: number
 }
 
 export interface ReviewLogEntry {
@@ -69,12 +71,18 @@ export interface DailyStats {
   quizCorrect: number
   microSessions: number
   studySeconds: number
+  updatedAt?: number
 }
 
 export interface Setting {
   key: string
   value: unknown
+  updatedAt?: number
 }
+
+/** 계정 동기화 대상이 아닌 기기 로컬 전용 설정 (시드 버전, 마지막 동기화 시각 등) */
+export const LOCAL_ONLY_SETTING = (key: string): boolean =>
+  key.startsWith('seed:') || key.startsWith('sync:')
 
 export const db = new Dexie('hanabi') as Dexie & {
   decks: EntityTable<Deck, 'id'>
@@ -100,5 +108,5 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
 }
 
 export async function setSetting(key: string, value: unknown): Promise<void> {
-  await db.settings.put({ key, value })
+  await db.settings.put({ key, value, updatedAt: Date.now() })
 }

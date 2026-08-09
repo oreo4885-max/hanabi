@@ -6,10 +6,36 @@ import { initVoices, jaVoices, speakJa } from '../../lib/tts'
 import { downloadBackup, importBackup, resetAll } from '../../lib/backup'
 import { LEVEL_DESC, LEVEL_ORDER } from '../../lib/levels'
 import { DEFAULT_TARGET_LEVEL } from '../../srs/queue'
+import { useAuth } from '../../lib/useAuth'
+import { signOut } from '../../lib/supabase'
+import { resetSyncCursor, syncNow } from '../../lib/sync'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
   const [targetLevel, setTargetLevel] = useState<Level>(DEFAULT_TARGET_LEVEL)
+  const auth = useAuth()
+  const [syncMsg, setSyncMsg] = useState('')
+  const [syncing, setSyncing] = useState(false)
+
+  async function doSync() {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const r = await syncNow()
+      setSyncMsg(`✅ 동기화 완료 — 올림 ${r.pushed}건, 받음 ${r.pulled}건`)
+    } catch (err) {
+      setSyncMsg(`❌ ${err instanceof Error ? err.message : '동기화에 실패했습니다.'}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  async function doSignOut() {
+    if (!window.confirm('로그아웃할까요? 이 기기의 학습 기록은 그대로 남습니다.')) return
+    await signOut()
+    await resetSyncCursor()
+    setSyncMsg('로그아웃되었습니다.')
+  }
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [ttsReady, setTtsReady] = useState(false)
   const [voiceName, setVoiceName] = useState('')
@@ -92,6 +118,56 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">설정</h1>
+
+      {/* 계정 */}
+      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+        <h2 className="font-semibold">계정</h2>
+        {auth.loading ? (
+          <p className="text-sm text-slate-400">확인 중…</p>
+        ) : auth.session ? (
+          <>
+            <p className="text-sm">
+              <b className="text-rose-600">{auth.email}</b> 로 로그인됨
+            </p>
+            <p className="text-xs leading-relaxed text-slate-400">
+              학습 기록이 계정에 저장됩니다. 다른 기기에서 같은 이메일로 로그인하면 이어서 학습할
+              수 있어요.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void doSync()}
+                disabled={syncing}
+                className="flex-1 rounded-xl bg-rose-600 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {syncing ? '동기화 중…' : '🔄 지금 동기화'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void doSignOut()}
+                className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-500 ring-1 ring-slate-200"
+              >
+                로그아웃
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xs leading-relaxed text-slate-400">
+              로그인하면 학습 기록이 계정에 저장되어 <b>여러 기기에서 이어서</b> 학습할 수 있습니다.
+              지금 이 기기의 기록은 첫 로그인 시 계정으로 합쳐집니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/auth')}
+              className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-bold text-white"
+            >
+              이메일로 로그인 / 회원가입
+            </button>
+          </>
+        )}
+        {syncMsg && <p className="text-sm">{syncMsg}</p>}
+      </section>
 
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="font-semibold">목표 레벨</h2>
