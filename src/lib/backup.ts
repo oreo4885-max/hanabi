@@ -1,4 +1,5 @@
 import { db, setSetting } from '../db/schema'
+import { clearOnboarded } from './onboarding'
 
 export interface BackupFile {
   app: 'hanabi'
@@ -96,5 +97,6 @@ export async function importBackup(json: string): Promise<{ cards: number; revie
 /** 모든 데이터 삭제 후 초기 상태로 (시드는 새로고침 시 재실행) */
 export async function resetAll(): Promise<void> {
   await db.delete()
+  clearOnboarded()
   window.location.reload()
 }

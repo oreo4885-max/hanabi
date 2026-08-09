@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import BottomNav from './components/BottomNav'
 import { db, setSetting } from './db/schema'
+import { ONBOARDED_FLAG } from './lib/onboarding'
 
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'))
 const DeckListPage = lazy(() => import('./features/decks/DeckListPage'))
@@ -19,9 +20,13 @@ const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 const OnboardingPage = lazy(() => import('./features/onboarding/OnboardingPage'))
 const AuthPage = lazy(() => import('./features/auth/AuthPage'))
 
-/** 온보딩 필요 여부: 아직 안 봤고 학습 이력도 없는 첫 사용자만 */
+/**
+ * 온보딩 필요 여부: 아직 안 봤고 학습 이력도 없는 첫 사용자만.
+ * DB 반영은 비동기라, 방금 온보딩을 끝낸 경우를 동기 플래그로 먼저 판정한다.
+ */
 function useNeedsOnboarding(): boolean | undefined {
-  return useLiveQuery(async () => {
+  const justFinished = typeof localStorage !== 'undefined' && localStorage.getItem(ONBOARDED_FLAG) === '1'
+  const fromDb = useLiveQuery(async () => {
     const flag = await db.settings.get('onboarded')
     if (flag?.value === true) return false
     const hasHistory = (await db.reviewLog.limit(1).count()) > 0
@@ -32,6 +37,9 @@ function useNeedsOnboarding(): boolean | undefined {
     }
     return true
   }, [])
+
+  if (justFinished) return false
+  return fromDb
 }
 
 export default function App() {

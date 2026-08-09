@@ -46,7 +46,7 @@ export default function AuthPage() {
     try {
       await sendOtp(addr)
       setStep('code')
-      setNotice(`${addr} 으로 6자리 인증번호를 보냈습니다.`)
+      setNotice(`${addr} 으로 인증번호를 보냈습니다.`)
       startCooldown()
     } catch (err) {
       setError(authErrorMessage(err))
@@ -56,9 +56,10 @@ export default function AuthPage() {
   }
 
   async function submitCode() {
+    // Supabase 프로젝트 설정에 따라 6~10자리로 올 수 있다
     const token = code.replace(/\D/g, '')
     if (token.length < 6) {
-      setError('6자리 인증번호를 입력해 주세요.')
+      setError('메일로 받은 인증번호를 모두 입력해 주세요.')
       return
     }
     setBusy(true)
@@ -89,7 +90,7 @@ export default function AuthPage() {
         <p className="mt-1 text-sm text-slate-500">
           {step === 'email'
             ? '이메일만 있으면 됩니다. 비밀번호는 필요 없어요.'
-            : '메일함에서 6자리 번호를 확인해 주세요.'}
+            : '메일함에서 인증번호를 확인해 주세요.'}
         </p>
       </header>
 
@@ -121,12 +122,12 @@ export default function AuthPage() {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
+            maxLength={10}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => e.key === 'Enter' && void submitCode()}
-            placeholder="000000"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.4em] outline-none focus:border-rose-400"
+            placeholder="인증번호"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-rose-400"
             autoFocus
           />
           <button

@@ -17,10 +17,12 @@ export function levelsUpTo(target: Level): Level[] {
   return idx === -1 ? LEVEL_ORDER : LEVEL_ORDER.slice(0, idx + 1)
 }
 
-/** 목표 레벨에 해당하는 덱 id들 (단어 + 문법) */
+/** 목표 레벨에 해당하는 덱 id들 (레벨당 하나 — 단어와 문형이 함께 들어 있다) */
 export function deckIdsForTarget(target: Level): string[] {
-  return levelsUpTo(target).flatMap((lv) => {
-    const l = lv.toLowerCase()
-    return [`jlpt-${l}`, `grammar-${l}`]
-  })
+  return levelsUpTo(target).map((lv) => `jlpt-${lv.toLowerCase()}`)
+}
+
+/** 문형 카드 여부 (id가 gn5-001 형태) */
+export function isGrammarCard(cardId: string): boolean {
+  return cardId.startsWith('g')
 }

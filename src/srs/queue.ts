@@ -1,7 +1,7 @@
 import { db, type Card, type Level, type SrsState } from '../db/schema'
 import { getSetting } from '../db/schema'
 import { todayStr } from '../lib/dates'
-import { deckIdsForTarget } from '../lib/levels'
+import { deckIdsForTarget, isGrammarCard } from '../lib/levels'
 
 export interface QueueItem {
   card: Card
@@ -27,6 +27,29 @@ async function allowedDeckIds(): Promise<Set<string>> {
   const custom = await db.decks.where('source').equals('custom').primaryKeys()
   for (const id of custom as string[]) ids.add(id)
   return ids
+}
+
+/**
+ * 새 카드를 쉬운 레벨(N5)부터 필요한 만큼만 모은다.
+ * 한 레벨 안에서는 문형보다 **단어를 먼저** 도입한다 (문형은 단어를 알아야 이해되므로).
+ */
+async function collectNewCards(target: Level, budget: number): Promise<SrsState[]> {
+  if (budget <= 0) return []
+  const out: SrsState[] = []
+  // 사용자가 만든 덱은 기본 덱을 다 소진한 뒤에 도입
+  const custom = (await db.decks.where('source').equals('custom').primaryKeys()) as string[]
+
+  for (const id of [...deckIdsForTarget(target), ...custom]) {
+    if (out.length >= budget) break
+    const rows = await db.srs.where('[deckId+state]').equals([id, 'new']).toArray()
+    rows.sort(
+      (a, b) =>
+        Number(isGrammarCard(a.cardId)) - Number(isGrammarCard(b.cardId)) ||
+        a.cardId.localeCompare(b.cardId),
+    )
+    out.push(...rows.slice(0, budget - out.length))
+  }
+  return out.slice(0, budget)
 }
 
 /** 취약 단어(자주 틀린 카드)를 lapses 많은 순으로. due와 무관한 집중 연습용. */
@@ -68,13 +91,9 @@ export async function buildDailyQueue(deckId?: string): Promise<QueueItem[]> {
   dueRows.sort((a, b) => a.dueAt - b.dueAt)
   dueRows = dueRows.slice(0, reviewLimit)
 
-  let newRows = await db.srs
-    .where('state')
-    .equals('new')
-    .and(inScope)
-    .limit(newBudget)
-    .toArray()
-  newRows = newRows.slice(0, newBudget)
+  const newRows = deckId
+    ? (await db.srs.where('[deckId+state]').equals([deckId, 'new']).limit(newBudget).toArray())
+    : await collectNewCards(await getSetting<Level>('targetLevel', DEFAULT_TARGET_LEVEL), newBudget)
 
   const rows = interleave(dueRows, newRows)
   const cards = await db.cards.bulkGet(rows.map((r) => r.cardId))

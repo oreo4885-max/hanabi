@@ -20,12 +20,13 @@ interface SeedFile {
 }
 
 /** 레벨별 데이터는 필요할 때만 동적 로드 (모바일 첫 화면을 가볍게). version은 여기서 관리. */
+// version은 '단어 + 문법을 한 덱으로 통합'하면서 전부 올렸다.
 const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
-  { level: 'N5', version: 5, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
-  { level: 'N4', version: 4, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
-  { level: 'N3', version: 1, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
-  { level: 'N2', version: 1, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
-  { level: 'N1', version: 1, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },
+  { level: 'N5', version: 6, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
+  { level: 'N4', version: 5, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
+  { level: 'N3', version: 2, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
+  { level: 'N2', version: 2, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
+  { level: 'N1', version: 2, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },
 ]
 
 function newSrsRow(cardId: string, deckId: string): SrsState {
@@ -95,24 +96,37 @@ interface GrammarFile {
   levels: Record<string, SeedWord[]>
 }
 
-/** 문형(문법) 덱 시딩 — 단어 덱과 동일한 SRS 파이프라인에 합류 */
-async function seedGrammarDecks(): Promise<void> {
-  const versionKey = 'seed:grammar:version'
-  const file = (await import('../data/grammar.json')).default as unknown as GrammarFile
-  const seeded = await db.settings.get(versionKey)
-  if (seeded !== undefined && (seeded.value as number) >= file.version) return
+/**
+ * 예전 버전에서 나뉘어 있던 'grammar-*' 덱을 같은 레벨의 'jlpt-*' 덱으로 흡수한다.
+ * 학습 진도(SRS)는 cardId 기준이라 그대로 유지되고, deckId만 옮겨진다.
+ */
+async function mergeLegacyGrammarDecks(): Promise<void> {
+  const legacy = await db.decks.filter((d) => d.id.startsWith('grammar-')).toArray()
+  if (legacy.length === 0) return
 
-  for (const lv of ['n5', 'n4', 'n3', 'n2', 'n1']) {
-    const words = file.levels[lv]
-    if (!words || words.length === 0) continue
-    const level = lv.toUpperCase() as Level
-    await upsertDeck(`grammar-${lv}`, `JLPT ${level} 문법`, level, words)
+  for (const deck of legacy) {
+    const target = `jlpt-${(deck.level ?? 'N5').toLowerCase()}`
+    await db.transaction('rw', [db.decks, db.cards, db.srs], async () => {
+      await db.cards.where('deckId').equals(deck.id).modify({ deckId: target })
+      await db.srs
+        .where('deckId')
+        .equals(deck.id)
+        .modify((s) => {
+          s.deckId = target
+          // 이미 동기화 대상인(학습한) 행만 갱신해 불필요한 업로드를 막는다
+          if (s.updatedAt) s.updatedAt = Date.now()
+        })
+      await db.decks.delete(deck.id)
+    })
   }
-  await db.settings.put({ key: versionKey, value: file.version })
 }
 
 /** 번들 데이터셋을 IndexedDB에 시딩. version이 오르면 카드 내용만 갱신(SRS 진행 상태는 보존). */
 export async function seedBundledDecks(): Promise<void> {
+  await mergeLegacyGrammarDecks()
+
+  const grammar = (await import('../data/grammar.json')).default as unknown as GrammarFile
+
   for (const bundle of BUNDLED) {
     const { level, version } = bundle
     const deckId = `jlpt-${level.toLowerCase()}`
@@ -122,9 +136,9 @@ export async function seedBundledDecks(): Promise<void> {
     if (seeded !== undefined && (seeded.value as number) >= version) continue
 
     const file = await bundle.load()
-    await upsertDeck(deckId, `JLPT ${level} 단어`, level, file.words)
+    // 같은 레벨의 단어와 문형을 한 덱으로 (단어 먼저, 문형 뒤)
+    const patterns = grammar.levels[level.toLowerCase()] ?? []
+    await upsertDeck(deckId, `JLPT ${level}`, level, [...file.words, ...patterns])
     await db.settings.put({ key: versionKey, value: version })
   }
-
-  await seedGrammarDecks()
 }

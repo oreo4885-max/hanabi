@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { setSetting, type Level } from '../../db/schema'
 import { LEVEL_DESC, LEVEL_ORDER } from '../../lib/levels'
+import { markOnboarded } from '../../lib/onboarding'
 
 const MENUS = [
   { icon: '🔁', name: '복습', desc: '오늘 볼 카드를 자동으로 골라줍니다. 매일 여기부터 시작하세요.' },
@@ -26,6 +27,8 @@ export default function OnboardingPage() {
   async function finish() {
     await setSetting('targetLevel', level)
     await setSetting('onboarded', true)
+    // DB 반영 전에 화면이 되튀지 않도록 동기 플래그를 먼저 세운다
+    markOnboarded()
     navigate('/', { replace: true })
   }
 
