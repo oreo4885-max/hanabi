@@ -231,7 +231,7 @@ export default function QuizPlayPage() {
             {q.card.exKo && <p className="text-sm text-slate-400">{q.card.exKo}</p>}
           </div>
         )}
-        {(config.mode === 'word-to-meaning' || config.mode === 'typed') && (
+        {config.mode === 'word-to-meaning' && (
           <div className="space-y-3">
             <p className="font-ja-display text-5xl leading-tight">{q.card.kanji}</p>
             {/* 주관식은 읽기가 정답이므로 뜻 고르기에서만 읽기 표시 */}

@@ -24,8 +24,9 @@ interface SeedFile {
 // version은 '단어 + 문법을 한 덱으로 통합'하면서 전부 올렸다.
 const BUNDLED: { level: Level; version: number; load: () => Promise<SeedFile> }[] = [
   // v9: 飲み物 예문의 한국어 해석 교정 (ほしい를 '마시고 싶습니다'로 옮겨 작문 채점이 틀어졌음)
-  { level: 'N5', version: 9, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
-  { level: 'N4', version: 7, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
+  // v10 / N4 v8: 후리가나를 한자별로 분리 — 毎朝(まいあさ) → 毎朝(まい|あさ)
+  { level: 'N5', version: 10, load: () => import('../data/n5.json').then((m) => m.default as SeedFile) },
+  { level: 'N4', version: 8, load: () => import('../data/n4.json').then((m) => m.default as SeedFile) },
   { level: 'N3', version: 4, load: () => import('../data/n3.json').then((m) => m.default as SeedFile) },
   { level: 'N2', version: 3, load: () => import('../data/n2.json').then((m) => m.default as SeedFile) },
   { level: 'N1', version: 3, load: () => import('../data/n1.json').then((m) => m.default as SeedFile) },

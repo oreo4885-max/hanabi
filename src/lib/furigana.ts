@@ -2,10 +2,14 @@
 
 export interface Segment {
   text: string
-  reading?: string
+  /**
+   * 한자마다의 읽기. `毎朝(まい|あさ)` 처럼 `|` 로 나뉘어 있으면 글자 수만큼 들어온다.
+   * 今日(きょう)처럼 한자별로 나눌 수 없는 숙자훈은 길이 1(전체 읽기)로 온다.
+   */
+  readings?: string[]
 }
 
-export const RUBY_RE = /([一-鿿々〆ヵヶ]+)\(([ぁ-んー]+)\)/g
+export const RUBY_RE = /([一-鿿々〆ヵヶ]+)\(([ぁ-んー|]+)\)/g
 
 export function parseFurigana(marked: string): Segment[] {
   const out: Segment[] = []
@@ -13,11 +17,16 @@ export function parseFurigana(marked: string): Segment[] {
   for (const m of marked.matchAll(RUBY_RE)) {
     const idx = m.index ?? 0
     if (idx > last) out.push({ text: marked.slice(last, idx) })
-    out.push({ text: m[1], reading: m[2] })
+    out.push({ text: m[1], readings: m[2].split('|') })
     last = idx + m[0].length
   }
   if (last < marked.length) out.push({ text: marked.slice(last) })
   return out
+}
+
+/** 한 덩어리의 전체 읽기 (분할 여부와 무관) */
+export function readingOf(seg: Segment): string | undefined {
+  return seg.readings?.join('')
 }
 
 /** 마크업에서 후리가나를 걷어낸 원문 (TTS·검증용) */
@@ -39,7 +48,7 @@ export function stripFurigana(marked: string): string {
  */
 export function kanaReading(marked: string): string {
   return parseFurigana(marked)
-    .map((seg) => seg.reading ?? seg.text)
+    .map((seg) => readingOf(seg) ?? seg.text)
     .join('')
 }
 
@@ -56,9 +65,10 @@ export function exampleSpeechText(plain: string, marked?: string, headword?: str
   const head = headword.trim()
   return parseFurigana(marked)
     .map((seg) => {
-      if (!seg.reading) return seg.text
+      const reading = readingOf(seg)
+      if (!reading) return seg.text
       // 표제어에 들어 있는 한자 덩어리만 가나로 읽힌다
-      return head.includes(seg.text) ? seg.reading : seg.text
+      return head.includes(seg.text) ? reading : seg.text
     })
     .join('')
 }

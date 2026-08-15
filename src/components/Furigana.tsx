@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { parseFurigana } from '../lib/furigana'
 
@@ -23,11 +24,26 @@ export default function Furigana({ marked, plain, deckId, className }: Props) {
   return (
     <span className={className}>
       {segments.map((seg, i) => {
-        if (!seg.reading) return <span key={i}>{seg.text}</span>
+        if (!seg.readings) return <span key={i}>{seg.text}</span>
+        const chars = [...seg.text]
+        // 읽기가 한자 수만큼 있으면 글자마다 따로 얹어 각 한자 위에 정확히 오게 한다.
+        // 今日(きょう)처럼 나눌 수 없는 숙자훈은 두 글자에 걸쳐 하나로 얹는다.
+        const perChar = seg.readings.length === chars.length
         const body = (
           <ruby className="rounded px-px hover:bg-rose-50">
-            {seg.text}
-            <rt className="text-[0.55em] text-slate-400">{seg.reading}</rt>
+            {perChar ? (
+              chars.map((ch, k) => (
+                <Fragment key={k}>
+                  {ch}
+                  <rt className="text-[0.55em] text-slate-400">{seg.readings![k]}</rt>
+                </Fragment>
+              ))
+            ) : (
+              <>
+                {seg.text}
+                <rt className="text-[0.55em] text-slate-400">{seg.readings.join('')}</rt>
+              </>
+            )}
           </ruby>
         )
         if (!deckId) return <span key={i}>{body}</span>

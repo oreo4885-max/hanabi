@@ -19,7 +19,6 @@ const MENU_ROWS: { key: string; label: string; sub?: string; color: string }[] =
   { key: 'micro', label: '1분 단기기억', color: 'bg-amber-400' },
   { key: 'quiz:word-to-meaning', label: '퀴즈 · 뜻 고르기', color: 'bg-emerald-500' },
   { key: 'quiz:meaning-to-word', label: '퀴즈 · 단어 고르기', color: 'bg-emerald-500' },
-  { key: 'quiz:typed', label: '퀴즈 · 주관식', color: 'bg-emerald-500' },
   { key: 'quiz:cloze', label: '퀴즈 · 예문 빈칸', color: 'bg-emerald-500' },
   { key: 'quiz:dictation', label: '퀴즈 · 받아쓰기', color: 'bg-emerald-500' },
   { key: 'quiz:compose', label: '퀴즈 · 작문', color: 'bg-emerald-500' },
