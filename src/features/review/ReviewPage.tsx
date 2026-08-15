@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { db, getSetting, type Grade } from '../../db/schema'
+import { getSetting, type Grade } from '../../db/schema'
 import { buildDailyQueue, type QueueItem } from '../../srs/queue'
 import { recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
@@ -10,13 +10,7 @@ import PitchAccent from '../../components/PitchAccent'
 import Furigana from '../../components/Furigana'
 import { speakableExample } from '../../lib/furigana'
 import { useSession } from '../../stores/session'
-
-const GRADE_BUTTONS: { grade: Grade; label: string; cls: string }[] = [
-  { grade: 0, label: '다시', cls: 'bg-red-50 text-red-500 ring-1 ring-red-100' },
-  { grade: 1, label: '어려움', cls: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100' },
-  { grade: 2, label: '좋음', cls: 'bg-emerald-500 text-white' },
-  { grade: 3, label: '쉬움', cls: 'bg-slate-800 text-white' },
-]
+import GradeSlider from './GradeSlider'
 
 /** 이 시간(ms) 안에 다시 due가 되는 카드는 현재 세션에 다시 넣는다. */
 const REQUEUE_WINDOW_MS = 15 * 60_000
@@ -34,7 +28,6 @@ export default function ReviewPage() {
   const [queue, setQueue] = useState<QueueItem[] | null>(resumable?.queue ?? null)
   const [flipped, setFlipped] = useState(resumable?.flipped ?? false)
   const [done, setDone] = useState(resumable?.done ?? 0)
-  const [flagged, setFlagged] = useState(false)
   const [showReading, setShowReading] = useState(false)
 
   useEffect(() => {
@@ -59,21 +52,6 @@ export default function ReviewPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId])
-
-  const currentCardId = queue?.[0]?.card.id
-  const currentFlagged = queue?.[0]?.card.flagged
-  useEffect(() => {
-    setFlagged(!!currentFlagged)
-  }, [currentCardId, currentFlagged])
-
-  async function toggleFlag() {
-    const card = queue?.[0]?.card
-    if (!card) return
-    const next = !flagged
-    setFlagged(next)
-    card.flagged = next
-    await db.cards.update(card.id, { flagged: next })
-  }
 
   if (!queue) return <p className="text-sm text-slate-400">큐를 만드는 중…</p>
 
@@ -140,9 +118,31 @@ export default function ReviewPage() {
         </div>
         {flipped ? (
           <div className="space-y-2.5 text-center">
-            {current.card.kana !== current.card.kanji && (
-              <p className="font-ja text-2xl font-semibold text-rose-600">{current.card.kana}</p>
-            )}
+            {/* 발음 버튼은 읽기 바로 옆에 둔다 (아래에 있으면 무엇을 읽어주는지 직관적이지 않음) */}
+            <p className="flex items-center justify-center gap-2">
+              {current.card.kana !== current.card.kanji && (
+                <span className="font-ja text-2xl font-semibold text-rose-600">
+                  {current.card.kana}
+                </span>
+              )}
+              {tts.available && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    tts.speak(current.card.kana)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') tts.speak(current.card.kana)
+                  }}
+                  className="rounded-full bg-rose-50 px-2.5 py-1 text-lg ring-1 ring-rose-100"
+                  aria-label="발음 듣기"
+                >
+                  🔊
+                </span>
+              )}
+            </p>
             {current.card.pos !== '문형' && (
               <PitchAccent id={current.card.id} kana={current.card.kana.split(';')[0].trim()} />
             )}
@@ -186,71 +186,23 @@ export default function ReviewPage() {
                 )}
               </div>
             )}
-            <div className="flex items-center justify-center gap-2">
-              {tts.available && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    tts.speak(current.card.kana)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') tts.speak(current.card.kana)
-                  }}
-                  className="inline-block rounded-full px-3 py-1 text-2xl hover:bg-rose-50"
-                  aria-label="발음 듣기"
-                >
-                  🔊
-                </span>
-              )}
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  void toggleFlag()
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void toggleFlag()
-                }}
-                className={`inline-block rounded-full px-3 py-1 text-xl hover:bg-rose-50 ${
-                  flagged ? '' : 'opacity-30 grayscale'
-                }`}
-                aria-label="뜻 오류 신고"
-                title="뜻이 이상하면 신고"
-              >
-                🚩
-              </span>
-            </div>
           </div>
         ) : (
           <p className="text-sm text-slate-400">탭해서 답 확인</p>
         )}
       </button>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        {flipped ? (
-          GRADE_BUTTONS.map((b) => (
-            <button
-              key={b.grade}
-              type="button"
-              onClick={() => grade(b.grade)}
-              className={`rounded-xl py-3.5 text-sm font-bold ${b.cls}`}
-            >
-              {b.label}
-            </button>
-          ))
-        ) : (
-          <button
-            type="button"
-            onClick={flip}
-            className="col-span-4 rounded-xl bg-rose-600 py-3.5 font-bold text-white"
-          >
-            답 보기
-          </button>
-        )}
-      </div>
+      {flipped ? (
+        <GradeSlider onGrade={grade} />
+      ) : (
+        <button
+          type="button"
+          onClick={flip}
+          className="mt-4 w-full rounded-xl bg-rose-600 py-3.5 font-bold text-white"
+        >
+          답 보기
+        </button>
+      )}
     </div>
   )
 }
