@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Link } from 'react-router-dom'
 import { db, type Level } from '../../db/schema'
 import { addDays, todayStr } from '../../lib/dates'
 import { bestStreak, currentStreak } from '../../lib/streak'
@@ -24,6 +25,9 @@ const MENU_ROWS: { key: string; label: string; sub?: string; color: string }[] =
   { key: 'quiz:compose', label: '퀴즈 · 작문', color: 'bg-emerald-500' },
 ]
 
+/** 중점 관리 목록에 종류별로 최대 몇 개까지 보여줄지 */
+const FOCUS_LIMIT = 8
+
 interface DeckStat {
   id: string
   name: string
@@ -31,6 +35,57 @@ interface DeckStat {
   total: number
   started: number
   mature: number
+}
+
+/** 자주 틀려서 집중 관리가 필요한 항목 */
+interface FocusItem {
+  cardId: string
+  deckId: string
+  kanji: string
+  kana: string
+  ko: string
+  exJa?: string
+  exKo?: string
+  /** 누적 오답 횟수 (FSRS lapses) */
+  lapses: number
+  /** 최근 기록 기준 정답률 — 기록이 없으면 null */
+  accuracy: number | null
+}
+
+/** 중점 관리 한 줄 — 표제어·뜻·오답 횟수와 예문 */
+function FocusRow({ item }: { item: FocusItem }) {
+  return (
+    <li>
+      <Link
+        to={`/decks/${item.deckId}?q=${encodeURIComponent(item.kanji)}`}
+        className="flex items-start gap-2 py-2"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-baseline gap-x-1.5">
+            <b className="font-ja text-base">{item.kanji}</b>
+            {item.kana !== item.kanji && (
+              <span className="font-ja text-xs text-slate-400">{item.kana}</span>
+            )}
+            <span className="text-sm text-slate-600">{item.ko}</span>
+          </span>
+          {item.exJa && (
+            <span className="mt-0.5 block truncate font-ja text-xs text-slate-400">
+              {item.exJa}
+              {item.exKo && <span className="ml-1 not-italic">— {item.exKo}</span>}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="block rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-500">
+            {item.lapses}회 틀림
+          </span>
+          {item.accuracy !== null && (
+            <span className="mt-0.5 block text-[11px] text-slate-400">정답 {item.accuracy}%</span>
+          )}
+        </span>
+      </Link>
+    </li>
+  )
 }
 
 export default function StatsPage() {
@@ -47,6 +102,7 @@ export default function StatsPage() {
     let youngN = 0
     let matureN = 0
     let weakN = 0
+    const weakRows: { cardId: string; lapses: number }[] = []
     await db.srs.each((s) => {
       const st = perDeck.get(s.deckId) ?? { started: 0, mature: 0 }
       const isMature = s.state === 'review' && s.intervalDays >= MATURE_DAYS
@@ -61,7 +117,10 @@ export default function StatsPage() {
       else if (s.state === 'learning') learnN++
       else if (isMature) matureN++
       else youngN++
-      if (s.lapses >= WEAK_LAPSES) weakN++
+      if (s.lapses >= WEAK_LAPSES) {
+        weakN++
+        weakRows.push({ cardId: s.cardId, lapses: s.lapses })
+      }
     })
 
     // 복습 정답률: grade 0(다시)만 오답으로 본다.
@@ -79,6 +138,44 @@ export default function StatsPage() {
       if (l.correct === true || (l.correct === undefined && l.grade > 0)) m.correct++
       menu.set(key, m)
     }
+
+    // 카드별 최근 정답률 (중점 관리 목록에 함께 보여준다)
+    const perCard = new Map<string, { total: number; wrong: number }>()
+    for (const l of recent) {
+      const c = perCard.get(l.cardId) ?? { total: 0, wrong: 0 }
+      c.total++
+      if (l.correct === false || (l.correct === undefined && l.grade === 0)) c.wrong++
+      perCard.set(l.cardId, c)
+    }
+
+    // 많이 틀린 순으로 추린 뒤 카드 정보를 붙인다 (전량 조회를 피하려고 상위만 가져온다)
+    const topWeak = weakRows
+      .sort((a, b) => b.lapses - a.lapses)
+      .slice(0, FOCUS_LIMIT * 6)
+    const weakCards = await db.cards.bulkGet(topWeak.map((w) => w.cardId))
+    const focusAll: (FocusItem & { pos?: string })[] = []
+    topWeak.forEach((w, i) => {
+      const card = weakCards[i]
+      if (!card) return
+      const acc = perCard.get(w.cardId)
+      focusAll.push({
+        cardId: w.cardId,
+        deckId: card.deckId,
+        kanji: card.kanji,
+        kana: card.kana,
+        ko: card.ko,
+        exJa: card.exJa,
+        exKo: card.exKo,
+        lapses: w.lapses,
+        accuracy: acc && acc.total > 0 ? Math.round(((acc.total - acc.wrong) / acc.total) * 100) : null,
+        pos: card.pos,
+      })
+    })
+    // 정답률이 낮은 쪽을 먼저 (기록이 없으면 뒤로)
+    const byPriority = (a: FocusItem, b: FocusItem) =>
+      b.lapses - a.lapses || (a.accuracy ?? 101) - (b.accuracy ?? 101)
+    const focusWords = focusAll.filter((f) => f.pos !== '문형').sort(byPriority).slice(0, FOCUS_LIMIT)
+    const focusGrammar = focusAll.filter((f) => f.pos === '문형').sort(byPriority).slice(0, FOCUS_LIMIT)
 
     const deckStats: DeckStat[] = decks
       .filter((d) => inTarget.has(d.id) || d.source === 'custom')
@@ -99,12 +196,14 @@ export default function StatsPage() {
       review: { graded, again },
       deckStats,
       menu,
+      focusWords,
+      focusGrammar,
     }
   }, [])
 
   if (!data) return <p className="text-sm text-slate-400">불러오는 중…</p>
 
-  const { days, target, counts, review, deckStats, menu } = data
+  const { days, target, counts, review, deckStats, menu, focusWords, focusGrammar } = data
   const { newN, learnN, youngN, matureN, weakN } = counts
   const total = newN + learnN + youngN + matureN
 
@@ -201,12 +300,49 @@ export default function StatsPage() {
           <p className="text-2xl font-bold text-amber-500">{currentStreak(days)}일</p>
           <p className="text-xs text-slate-400">최고 {bestStreak(days)}일</p>
         </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-400">취약 항목</p>
+        <Link to="/decks/weak" className="rounded-2xl bg-white p-4 shadow-sm">
+          <p className="text-xs text-slate-400">중점 관리</p>
           <p className="text-2xl font-bold text-red-500">{weakN}</p>
-          <p className="text-xs text-slate-400">2회 이상 틀림</p>
-        </div>
+          <p className="text-xs text-slate-400">{WEAK_LAPSES}회 이상 틀림 →</p>
+        </Link>
       </section>
+
+      {/* 중점 관리 — 자주 틀린 단어·문형 */}
+      {(focusWords.length > 0 || focusGrammar.length > 0) && (
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-1 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-slate-600">🎯 중점 관리</h2>
+            <Link to="/review?deck=weak" className="text-xs font-semibold text-rose-600">
+              모아서 복습 →
+            </Link>
+          </div>
+          <p className="mb-3 text-[11px] text-slate-400">
+            {WEAK_LAPSES}회 이상 틀린 항목입니다. 눌러서 단어장에서 확인할 수 있어요.
+          </p>
+
+          {focusWords.length > 0 && (
+            <>
+              <p className="mb-1.5 text-xs font-bold text-slate-500">단어 {focusWords.length}</p>
+              <ul className="mb-3 divide-y divide-slate-100">
+                {focusWords.map((f) => (
+                  <FocusRow key={f.cardId} item={f} />
+                ))}
+              </ul>
+            </>
+          )}
+
+          {focusGrammar.length > 0 && (
+            <>
+              <p className="mb-1.5 text-xs font-bold text-slate-500">문형 {focusGrammar.length}</p>
+              <ul className="divide-y divide-slate-100">
+                {focusGrammar.map((f) => (
+                  <FocusRow key={f.cardId} item={f} />
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       {/* 메뉴별 진도 */}
       <section className="rounded-2xl bg-white p-4 shadow-sm">
