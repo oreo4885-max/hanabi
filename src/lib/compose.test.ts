@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diffChars, normalizeSentence, scoreCompose } from './compose'
+import { COMPOSE_PASS, composeHints, diffChars, normalizeSentence, scoreCompose } from './compose'
 
 const KANA = 'ドアがあきました。'
 const KANJI = 'ドアが開きました。'
@@ -47,6 +47,29 @@ describe('scoreCompose', () => {
     expect(r.percent).toBeLessThan(100)
   })
 
+  it('조사만 틀리면 감점이 절반이라 통과선을 넘는다', () => {
+    // を/が 를 헷갈린 것과 문장을 통째로 다르게 쓴 것을 같게 볼 수 없다
+    const r = scoreCompose('わたしをがくせいです', 'わたしはがくせいです', '私は学生です')
+    expect(r.correct).toBe(true)
+    expect(r.percent).toBeGreaterThan(90)
+  })
+
+  it('내용어가 틀리면 조사보다 크게 감점된다', () => {
+    const particle = scoreCompose('わたしをがくせいです', 'わたしはがくせいです', '私は学生です')
+    const content = scoreCompose('わたしはがくせんです', 'わたしはがくせいです', '私は学生です')
+    expect(content.percent).toBeLessThan(particle.percent)
+  })
+
+  it('활용만 틀린 문장은 통과선을 넘는다 (冷たくて → 冷たい)', () => {
+    const r = scoreCompose(
+      'つめたくてのみものをのみたいです',
+      'つめたいのみものをのみたいです',
+      '冷たい飲み物を飲みたいです',
+    )
+    expect(r.percent).toBeGreaterThanOrEqual(COMPOSE_PASS)
+    expect(r.correct).toBe(true)
+  })
+
   it('전혀 다른 문장은 낮은 점수와 오답', () => {
     const r = scoreCompose('わたしはがくせいです', KANA, KANJI)
     expect(r.correct).toBe(false)
@@ -84,5 +107,21 @@ describe('diffChars', () => {
 
   it('완전히 같으면 same 하나', () => {
     expect(diffChars('あきました', 'あきました')).toEqual([{ type: 'same', text: 'あきました' }])
+  })
+})
+
+describe('composeHints', () => {
+  it('조사를 바꿔 쓴 것은 조사 문제로 알려준다', () => {
+    const hints = composeHints(diffChars('わたしはがくせい', 'わたしをがくせい'))
+    expect(hints[0]).toBe('조사가 달라요 — を 대신 は 를 써요')
+  })
+
+  it('빠뜨린 조사를 짚어 준다', () => {
+    const hints = composeHints(diffChars('ほんをよみます', 'ほんよみます'))
+    expect(hints[0]).toBe('조사 を 가 빠졌어요')
+  })
+
+  it('최대 3개까지만 알려준다', () => {
+    expect(composeHints(diffChars('あいうえおかきくけこ', 'さしすせそたちつてと')).length).toBeLessThanOrEqual(3)
   })
 })

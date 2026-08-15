@@ -26,6 +26,7 @@ export default function QuizPlayPage() {
   const [composeResult, setComposeResult] = useState<ComposeResult | null>(null)
   const [percentSum, setPercentSum] = useState(0)
   const [hintShown, setHintShown] = useState(false)
+  const [selfMarked, setSelfMarked] = useState(false)
   const composing = useRef(false)
   const [showReading, setShowReading] = useState(false)
   const tts = useTts()
@@ -149,9 +150,27 @@ export default function QuizPlayPage() {
     const result = scoreCompose(typed, kanaReading(q.card.exFuri ?? ''), q.card.exJa ?? '')
     setComposeResult(result)
     setPercentSum((s) => s + result.percent)
-    void submit(result.correct)
-    // 정답 문장을 읽어준다
+    setPhase('feedback')
+    // 작문은 사용자가 '제 답도 맞아요'를 누를 수 있으므로
+    // 기록·SRS 반영은 '다음'을 누를 때로 미룬다
     if (tts.available) tts.speak(speakableExample(q.card))
+  }
+
+  /** 작문 결과를 확정해 기록에 남긴다 */
+  async function commitCompose(correct: boolean) {
+    if (correct) setCorrectCount((c) => c + 1)
+    await bumpDaily({ quizTotal: 1, quizCorrect: correct ? 1 : 0 })
+    await logQuizAnswer(q.card.id, 'compose', correct)
+    if (!correct) {
+      const srs = await db.srs.get(q.card.id)
+      if (srs && srs.state !== 'new') await recordReview(q.card, 0, 'quiz')
+    }
+  }
+
+  function nextCompose() {
+    void commitCompose(!!composeResult?.correct || selfMarked)
+    setSelfMarked(false)
+    next()
   }
 
   function next() {
@@ -372,10 +391,12 @@ export default function QuizPlayPage() {
             result={composeResult}
             card={q.card}
             onSpeak={tts.available ? () => tts.speak(speakableExample(q.card)) : undefined}
+            onSelfMark={() => setSelfMarked(true)}
+            selfMarked={selfMarked}
           />
           <button
             type="button"
-            onClick={next}
+            onClick={nextCompose}
             className="w-full rounded-xl bg-slate-800 py-3 font-semibold text-white"
           >
             다음
