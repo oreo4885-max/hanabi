@@ -24,10 +24,20 @@ const POOL: Card[] = [
 
 describe('pickDistractors', () => {
   it('정답과 형태가 닮은 보기를 우선한다 (단어 고르기)', () => {
-    const picked = pickDistractors(TARGET, POOL, false, 3)
-    const ids = picked.map((c) => c.id)
-    // 무관한 단어만으로 채워지면 소거법으로 풀려버린다
-    expect(ids.some((id) => ['a', 'b', 'c'].includes(id))).toBe(true)
+    // 후보가 상위 풀보다 많아야 순위 매기기가 실제로 걸러낸다
+    const noise = Array.from({ length: 40 }, (_, i) =>
+      card(`n${i}`, `第${i}課`, `だい${i}か`, `무관한 뜻 ${i}`),
+    )
+    const pool = [...POOL, ...noise]
+    let withSimilar = 0
+    const RUNS = 100
+    for (let i = 0; i < RUNS; i++) {
+      const ids = pickDistractors(TARGET, pool, false, 3).map((c) => c.id)
+      if (ids.some((id) => ['a', 'b', 'c'].includes(id))) withSimilar++
+    }
+    // 무작위로 뽑으면 40여 개 중 3개라 10%도 안 나온다.
+    // 닮은 보기를 우선하면 절반 이상의 문제에 섞여 들어간다.
+    expect(withSimilar / RUNS).toBeGreaterThan(0.4)
   })
 
   it('정답 자신은 보기에 넣지 않는다', () => {

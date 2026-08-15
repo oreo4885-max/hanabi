@@ -1,5 +1,6 @@
 import type { ComposeResult } from '../../lib/compose'
 import { HINT_MIN_PERCENT, composeHints, composeVerdict } from '../../lib/compose'
+import { grammarNotes } from '../../lib/grammarNotes'
 import type { Card } from '../../db/schema'
 import Furigana from '../../components/Furigana'
 
@@ -31,6 +32,14 @@ export default function ComposeFeedback({
   // 문장이 통째로 다르면 글자 단위 지적은 소음이라 접는다
   const closeEnough = result.percent >= HINT_MIN_PERCENT && result.percent < 100
   const hints = closeEnough ? composeHints(result.diff) : []
+  // 왜 다른지 — 많이 틀렸을 때야말로 이유 설명이 필요하므로 점수와 무관하게 보여준다
+  const notes =
+    result.percent < 100
+      ? grammarNotes(result.normalizedExpected, result.normalizedInput, {
+          diff: result.diff,
+          percent: result.percent,
+        })
+      : []
 
   return (
     <div className={`space-y-3 rounded-2xl p-4 ${good ? 'bg-emerald-50' : 'bg-amber-50'}`}>
@@ -53,6 +62,19 @@ export default function ComposeFeedback({
           style={{ width: `${result.percent}%` }}
         />
       </div>
+
+      {/* 왜 다른지 — 무엇이 다른지보다 이쪽이 실제로 배움이 된다 */}
+      {notes.length > 0 && (
+        <div className="space-y-2 rounded-xl bg-white/80 px-3 py-2.5">
+          <p className="text-[11px] font-semibold text-slate-400">왜 다를까요?</p>
+          {notes.map((n, i) => (
+            <div key={i}>
+              <p className="font-ja text-sm font-bold text-amber-700">{n.title}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-600">{n.detail}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 많이 다를 때는 글자를 짚기보다 모범 답안을 통째로 익히도록 안내한다 */}
       {!closeEnough && result.percent < 100 && (
