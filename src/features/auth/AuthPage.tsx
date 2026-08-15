@@ -7,6 +7,10 @@ type Step = 'email' | 'code'
 
 const RESEND_SEC = 60
 
+/** Supabase 인증번호 길이는 프로젝트 설정에 따라 6~10자리다 (이 프로젝트는 8자리) */
+const OTP_MIN = 6
+const OTP_MAX = 10
+
 export default function AuthPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('email')
@@ -56,10 +60,11 @@ export default function AuthPage() {
   }
 
   async function submitCode() {
-    // Supabase 프로젝트 설정에 따라 6~10자리로 올 수 있다
     const token = code.replace(/\D/g, '')
-    if (token.length < 6) {
-      setError('메일로 받은 인증번호를 모두 입력해 주세요.')
+    if (token.length < OTP_MIN) {
+      setError(
+        `인증번호가 짧습니다 (${token.length}자리 입력됨). 메일에 적힌 숫자를 끝까지 입력해 주세요.`,
+      )
       return
     }
     setBusy(true)
@@ -90,7 +95,7 @@ export default function AuthPage() {
         <p className="mt-1 text-sm text-slate-500">
           {step === 'email'
             ? '이메일만 있으면 됩니다. 비밀번호는 필요 없어요.'
-            : '메일함에서 인증번호를 확인해 주세요.'}
+            : '메일함에서 인증번호를 확인해 주세요. 자동완성이 일부만 채우면 직접 입력하세요.'}
         </p>
       </header>
 
@@ -121,15 +126,27 @@ export default function AuthPage() {
           <input
             type="text"
             inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={10}
+            /* one-time-code 자동완성은 6자리 코드를 전제로 동작해서
+               8자리 인증번호의 앞 6자리만 채워 넣는다. 그래서 끈다. */
+            autoComplete="off"
+            maxLength={OTP_MAX}
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, OTP_MAX))}
             onKeyDown={(e) => e.key === 'Enter' && void submitCode()}
             placeholder="인증번호"
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.3em] outline-none focus:border-rose-400"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-[0.25em] outline-none focus:border-rose-400"
             autoFocus
           />
+          {/* 자동완성이 일부만 채워 넣는 경우를 바로 알아챌 수 있게 자릿수를 보여준다 */}
+          <p className="text-center text-xs text-slate-400">
+            메일에 적힌 숫자를 <b>끝까지</b> 입력해 주세요 (보통 8자리)
+            {code.length > 0 && (
+              <span className={code.length >= OTP_MIN ? 'text-emerald-600' : 'text-slate-400'}>
+                {' '}
+                · {code.length}자리 입력됨
+              </span>
+            )}
+          </p>
           <button
             type="button"
             onClick={() => void submitCode()}

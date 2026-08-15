@@ -9,12 +9,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    // OTP(6자리 코드) 방식이라 URL 해시로 세션이 오지 않는다
+    // OTP(숫자 코드) 방식이라 URL 해시로 세션이 오지 않는다
     detectSessionInUrl: false,
   },
 })
 
-/** 이메일로 6자리 인증번호 발송 (계정이 없으면 자동 생성) */
+/**
+ * 이메일로 인증번호 발송 (계정이 없으면 자동 생성).
+ * 자릿수는 Supabase 프로젝트 설정값을 따른다 (6~10자리, 현재 8자리).
+ */
 export async function sendOtp(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim().toLowerCase(),
