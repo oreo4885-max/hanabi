@@ -33,6 +33,16 @@ export function stripFurigana(marked: string): string {
  * 그래서 표제어에 해당하는 한자만 후리가나 읽기로 치환해 카드와 발음을 맞춘다.
  * 나머지 한자는 그대로 둬서 조사·억양이 어색해지지 않게 한다.
  */
+/**
+ * 후리가나 마크업에서 문장 전체의 가나 읽기를 만든다 (한자를 모두 읽기로 치환).
+ * 작문 퀴즈 채점 기준 — 초급자는 한자를 못 써도 정답 처리해야 하기 때문.
+ */
+export function kanaReading(marked: string): string {
+  return parseFurigana(marked)
+    .map((seg) => seg.reading ?? seg.text)
+    .join('')
+}
+
 export function speakableExample(card: {
   exJa?: string
   exFuri?: string

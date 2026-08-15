@@ -1,7 +1,14 @@
 import { create } from 'zustand'
 import type { QueueItem } from '../srs/queue'
 
-export type QuizMode = 'word-to-meaning' | 'meaning-to-word' | 'typed' | 'dictation' | 'cloze'
+export type QuizMode =
+  | 'word-to-meaning'
+  | 'meaning-to-word'
+  | 'typed'
+  | 'dictation'
+  | 'cloze'
+  /** 한국어 문장을 보고 일본어 문장을 직접 타이핑하는 작문 */
+  | 'compose'
 
 export interface QuizConfig {
   deckId: string

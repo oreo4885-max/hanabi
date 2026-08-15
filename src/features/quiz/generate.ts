@@ -37,8 +37,22 @@ export function makeCloze(card: Card): string | null {
   return card.exJa.replace(head, '（　　）')
 }
 
+/**
+ * 작문 문제로 쓸 수 있는 카드인지.
+ * 한국어 해석(문제)과 후리가나 예문(가나 정답)이 둘 다 있어야 채점이 가능하다.
+ * 후리가나가 있는 N5·N4에서만 문제가 만들어진다.
+ */
+export function isComposable(card: Card): boolean {
+  return !!card.exJa && !!card.exKo && !!card.exFuri
+}
+
 export function generateQuestions(pool: Card[], mode: QuizMode, count: number): Question[] {
-  const effectivePool = mode === 'cloze' ? pool.filter((c) => makeCloze(c) !== null) : pool
+  const effectivePool =
+    mode === 'cloze'
+      ? pool.filter((c) => makeCloze(c) !== null)
+      : mode === 'compose'
+        ? pool.filter(isComposable)
+        : pool
   const targets = shuffle(effectivePool).slice(0, count)
   const isChoice = mode === 'word-to-meaning' || mode === 'meaning-to-word' || mode === 'cloze'
   return targets.map((card) => ({

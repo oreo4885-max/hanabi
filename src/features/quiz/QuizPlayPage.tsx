@@ -7,7 +7,9 @@ import { isCorrectKana } from '../../lib/kana'
 import { bumpDaily, logQuizAnswer, recordReview } from '../../lib/stats'
 import { useTts } from '../../lib/useTts'
 import Furigana from '../../components/Furigana'
-import { speakableExample } from '../../lib/furigana'
+import { kanaReading, speakableExample } from '../../lib/furigana'
+import { normalizeSentence, scoreCompose, type ComposeResult } from '../../lib/compose'
+import ComposeFeedback from './ComposeFeedback'
 
 type Phase = 'answering' | 'feedback'
 
@@ -21,6 +23,9 @@ export default function QuizPlayPage() {
   const [lastCorrect, setLastCorrect] = useState(false)
   const [correctCount, setCorrectCount] = useState(0)
   const [typed, setTyped] = useState('')
+  const [composeResult, setComposeResult] = useState<ComposeResult | null>(null)
+  const [percentSum, setPercentSum] = useState(0)
+  const [hintShown, setHintShown] = useState(false)
   const composing = useRef(false)
   const [showReading, setShowReading] = useState(false)
   const tts = useTts()
@@ -62,6 +67,30 @@ export default function QuizPlayPage() {
 
   const q = questions[index]
 
+  // 만들 수 있는 문제가 없는 경우 (작문은 후리가나 예문이 있어야 한다)
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 pt-16 text-center">
+        <p className="text-5xl">📭</p>
+        <h1 className="text-lg font-bold">이 단어장에는 낼 수 있는 문제가 없어요</h1>
+        <p className="text-sm leading-relaxed text-slate-500">
+          {config.mode === 'compose' ? (
+            <>
+              작문 퀴즈는 후리가나 예문이 있어야 채점할 수 있습니다.
+              <br />
+              지금은 <b>N5·N4</b> 단어장에서 이용해 주세요.
+            </>
+          ) : (
+            <>이 유형에 맞는 예문이 있는 단어가 없습니다. 다른 유형을 골라 주세요.</>
+          )}
+        </p>
+        <Link to="/quiz" className="rounded-xl bg-rose-600 px-5 py-2.5 font-semibold text-white">
+          다른 유형 고르기
+        </Link>
+      </div>
+    )
+  }
+
   // 세션 종료 화면
   if (!q) {
     return (
@@ -71,6 +100,14 @@ export default function QuizPlayPage() {
         <p className="text-lg">
           <span className="font-bold text-rose-600">{correctCount}</span> / {questions.length} 정답
         </p>
+        {config.mode === 'compose' && (
+          <p className="text-sm text-slate-500">
+            평균 정답률{' '}
+            <span className="font-bold text-rose-600">
+              {Math.round(percentSum / questions.length)}%
+            </span>
+          </p>
+        )}
         <div className="flex gap-2">
           <Link to="/quiz" className="rounded-xl bg-rose-600 px-5 py-2.5 font-semibold text-white">
             다시 풀기
@@ -106,14 +143,28 @@ export default function QuizPlayPage() {
     void submit(isCorrectKana(typed, q.card.kana))
   }
 
+  function submitCompose() {
+    if (phase !== 'answering' || composing.current || !typed.trim()) return
+    // 가나 정답(후리가나에서 유도) / 한자 정답 둘 다와 비교해 더 나은 쪽으로 채점
+    const result = scoreCompose(typed, kanaReading(q.card.exFuri ?? ''), q.card.exJa ?? '')
+    setComposeResult(result)
+    setPercentSum((s) => s + result.percent)
+    void submit(result.correct)
+    // 정답 문장을 읽어준다
+    if (tts.available) tts.speak(speakableExample(q.card))
+  }
+
   function next() {
     setPhase('answering')
     setTyped('')
+    setComposeResult(null)
+    setHintShown(false)
     setIndex((i) => i + 1)
   }
 
   const isChoice =
     config.mode === 'word-to-meaning' || config.mode === 'meaning-to-word' || config.mode === 'cloze'
+  const isCompose = config.mode === 'compose'
 
   return (
     <div className="flex min-h-[70svh] flex-col">
@@ -125,7 +176,35 @@ export default function QuizPlayPage() {
       </header>
 
       {/* 문제 */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+      <div
+        className={`rounded-3xl border border-slate-200 bg-white text-center ${
+          isCompose ? 'p-6' : 'p-8'
+        }`}
+      >
+        {isCompose && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-slate-400">이 문장을 일본어로 써 보세요</p>
+            <p className="text-xl font-bold leading-relaxed">{q.card.exKo}</p>
+            {phase === 'answering' &&
+              (hintShown ? (
+                <p className="text-sm text-slate-500">
+                  💡 <span className="font-ja font-semibold">{q.card.kanji}</span>
+                  {q.card.kana !== q.card.kanji && (
+                    <span className="font-ja text-slate-400"> ({q.card.kana})</span>
+                  )}{' '}
+                  — {q.card.ko}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setHintShown(true)}
+                  className="rounded-full bg-rose-50 px-4 py-1.5 text-xs font-semibold text-rose-600 ring-1 ring-rose-100"
+                >
+                  💡 힌트 (핵심 단어)
+                </button>
+              ))}
+          </div>
+        )}
         {config.mode === 'meaning-to-word' && <p className="text-2xl font-bold">{q.card.ko}</p>}
         {config.mode === 'cloze' && (
           <div className="space-y-2">
@@ -208,7 +287,48 @@ export default function QuizPlayPage() {
             )
           })}
 
-        {!isChoice && (
+        {isCompose && (
+          <div className="space-y-2">
+            <textarea
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              onCompositionStart={() => {
+                composing.current = true
+              }}
+              onCompositionEnd={() => {
+                composing.current = false
+              }}
+              onKeyDown={(e) => {
+                // 줄바꿈이 필요 없는 한 문장이라 Enter를 제출로 쓴다
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  submitCompose()
+                }
+              }}
+              disabled={phase === 'feedback'}
+              rows={2}
+              placeholder="일본어로 입력 (로마자로 쳐도 히라가나로 바뀝니다)"
+              className="w-full resize-none rounded-xl border border-rose-100 bg-white px-4 py-3 font-ja text-lg leading-relaxed outline-none focus:border-rose-300"
+              autoFocus
+            />
+            {/* 로마자가 어떤 가나로 바뀌는지 실시간으로 보여준다 */}
+            {phase === 'answering' && typed.trim() && (
+              <p className="px-1 font-ja text-sm text-slate-400">→ {normalizeSentence(typed)}</p>
+            )}
+            {phase === 'answering' && (
+              <button
+                type="button"
+                onClick={submitCompose}
+                disabled={!typed.trim()}
+                className="w-full rounded-xl bg-rose-600 py-3 font-semibold text-white disabled:opacity-40"
+              >
+                채점하기
+              </button>
+            )}
+          </div>
+        )}
+
+        {!isChoice && !isCompose && (
           <div className="space-y-2">
             <input
               type="text"
@@ -245,8 +365,26 @@ export default function QuizPlayPage() {
         )}
       </div>
 
+      {/* 작문 피드백 — 정답률 · 틀린 곳 · 정답 문장 듣기 */}
+      {phase === 'feedback' && isCompose && composeResult && (
+        <div className="mt-4 space-y-3">
+          <ComposeFeedback
+            result={composeResult}
+            card={q.card}
+            onSpeak={tts.available ? () => tts.speak(speakableExample(q.card)) : undefined}
+          />
+          <button
+            type="button"
+            onClick={next}
+            className="w-full rounded-xl bg-slate-800 py-3 font-semibold text-white"
+          >
+            다음
+          </button>
+        </div>
+      )}
+
       {/* 피드백 */}
-      {phase === 'feedback' && (
+      {phase === 'feedback' && !isCompose && (
         <div
           className={`mt-4 rounded-2xl p-4 ${lastCorrect ? 'bg-emerald-50' : 'bg-red-50'}`}
         >

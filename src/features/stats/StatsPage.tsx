@@ -21,6 +21,7 @@ const MENU_ROWS: { key: string; label: string; sub?: string; color: string }[] =
   { key: 'quiz:typed', label: '퀴즈 · 주관식', color: 'bg-emerald-500' },
   { key: 'quiz:cloze', label: '퀴즈 · 예문 빈칸', color: 'bg-emerald-500' },
   { key: 'quiz:dictation', label: '퀴즈 · 받아쓰기', color: 'bg-emerald-500' },
+  { key: 'quiz:compose', label: '퀴즈 · 작문', color: 'bg-emerald-500' },
 ]
 
 interface DeckStat {
