@@ -9,6 +9,8 @@ import { useTts } from '../../lib/useTts'
 import Furigana from '../../components/Furigana'
 import { kanaReading, speakableExample } from '../../lib/furigana'
 import { normalizeSentence, scoreCompose, type ComposeResult } from '../../lib/compose'
+import { buildWordIndex, type WordIndex } from '../../lib/sentenceWords'
+import { deckIdsForTarget } from '../../lib/levels'
 import ComposeFeedback from './ComposeFeedback'
 
 type Phase = 'answering' | 'feedback'
@@ -52,6 +54,24 @@ export default function QuizPlayPage() {
       alive = false
     }
   }, [config, navigate])
+
+  // 작문 첨삭에서 예문 속 단어의 뜻을 붙이려면 사전이 필요하다.
+  // 후리가나가 있는 N5·N4 어휘만으로 예문 단어의 91%가 잡힌다.
+  const [wordIndex, setWordIndex] = useState<WordIndex | null>(null)
+  useEffect(() => {
+    if (config?.mode !== 'compose') return
+    let alive = true
+    db.cards
+      .where('deckId')
+      .anyOf(deckIdsForTarget('N4'))
+      .toArray()
+      .then((cs) => {
+        if (alive) setWordIndex(buildWordIndex(cs))
+      })
+    return () => {
+      alive = false
+    }
+  }, [config?.mode])
 
   const isDictation = config?.mode === 'dictation'
   const currentKana = questions?.[index]?.card.kana
@@ -393,6 +413,7 @@ export default function QuizPlayPage() {
             onSpeak={tts.available ? () => tts.speak(speakableExample(q.card)) : undefined}
             onSelfMark={() => setSelfMarked(true)}
             selfMarked={selfMarked}
+            wordIndex={wordIndex}
           />
           <button
             type="button"

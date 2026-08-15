@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { lookupSentenceWords, type WordIndex } from '../../lib/sentenceWords'
 import type { ComposeResult } from '../../lib/compose'
 import { HINT_MIN_PERCENT, composeHints, composeVerdict } from '../../lib/compose'
 import { grammarNotes } from '../../lib/grammarNotes'
@@ -11,6 +14,8 @@ interface Props {
   /** 다른 표현으로 맞게 썼을 때 사용자가 직접 정답 처리 */
   onSelfMark?: () => void
   selfMarked?: boolean
+  /** 예문 속 단어의 뜻을 찾기 위한 사전 (준비 전에는 null) */
+  wordIndex?: WordIndex | null
 }
 
 /**
@@ -26,7 +31,13 @@ export default function ComposeFeedback({
   onSpeak,
   onSelfMark,
   selfMarked,
+  wordIndex,
 }: Props) {
+  const words = useMemo(
+    () =>
+      wordIndex ? lookupSentenceWords(card.exFuri, card.exJa ?? '', wordIndex, card.id) : [],
+    [wordIndex, card],
+  )
   const verdict = composeVerdict(result.percent)
   const good = result.correct || !!selfMarked
   // 문장이 통째로 다르면 글자 단위 지적은 소음이라 접는다
@@ -169,11 +180,37 @@ export default function ComposeFeedback({
         </div>
       </div>
 
-      {/* 이번 문제에서 쓰인 단어 */}
-      <p className="text-xs text-slate-500">
-        핵심 단어 <span className="font-ja font-semibold">{card.kanji}</span>
-        {card.kana !== card.kanji && <span className="font-ja"> ({card.kana})</span>} — {card.ko}
-      </p>
+      {/* 모범 답안에 쓰인 단어들 — 문장을 뜯어보며 익히도록 */}
+      <div className="rounded-xl bg-white/70 px-3 py-2.5">
+        <p className="mb-1.5 text-[11px] font-semibold text-slate-400">이 문장에 쓰인 단어</p>
+        <ul className="divide-y divide-slate-100">
+          <li className="flex items-baseline gap-2 py-1">
+            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-600">
+              핵심
+            </span>
+            <span className="font-ja text-sm font-bold">{card.kanji}</span>
+            {card.kana !== card.kanji && (
+              <span className="font-ja text-xs text-slate-400">{card.kana}</span>
+            )}
+            <span className="min-w-0 flex-1 truncate text-xs text-slate-600">{card.ko}</span>
+          </li>
+          {words.map((w) => (
+            <li key={w.cardId}>
+              <Link
+                to={`/decks/${w.deckId}?q=${encodeURIComponent(w.kanji)}`}
+                className="flex items-baseline gap-2 py-1"
+              >
+                <span className="font-ja text-sm font-semibold">{w.kanji}</span>
+                {w.kana !== w.kanji && (
+                  <span className="font-ja text-xs text-slate-400">{w.kana}</span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-600">{w.ko}</span>
+                {w.pos && <span className="shrink-0 text-[10px] text-slate-400">{w.pos}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* 앱은 모범 답안 하나만 알고 있으므로, 다른 표현으로 맞게 쓴 경우는 사용자가 판단한다 */}
       {!result.correct && onSelfMark && (
