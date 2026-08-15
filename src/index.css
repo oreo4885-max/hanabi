@@ -31,10 +31,8 @@ a {
   user-select: none;
 }
 
-button:active,
-a:active {
-  transform: scale(0.98);
-}
+/* 누를 때 축소(scale) 효과는 두지 않는다.
+   복습 카드처럼 화면을 꽉 채우는 버튼에서는 화면이 흔들리는 것처럼 보인다. */
 
 /* iOS: 16px 미만 입력 필드 포커스 시 자동 확대 방지 */
 input,
